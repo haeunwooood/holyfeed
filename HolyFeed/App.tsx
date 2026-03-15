@@ -45,13 +45,23 @@ function MainTabs() {
         },
 
         tabBarStyle: {
-          borderTopWidth: 1,
-          borderTopColor: '#EAEAEA',
+          position: 'absolute',
+          bottom: Platform.OS === 'ios' ? 30 : 20,
+          left: 20,
+          right: 20,
           backgroundColor: '#FFF',
-          elevation: 0,
-          height: Platform.OS === 'ios' ? 85 : 70, // 높이를 더 넉넉하게
-          paddingTop: 5,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 10, // 안드로이드 하단 여백 추가
+          borderRadius: 20,
+          height: 60,
+          shadowColor: '#000',
+          shadowOpacity: 0.1,
+          shadowOffset: { width: 0, height: 5 },
+          shadowRadius: 10,
+          elevation: 5,
+          borderTopWidth: 0,
+          paddingBottom: 0,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 10,
         },
       })}
     >
@@ -148,7 +158,7 @@ export default function App() {
                 <Text style={styles.cardEmoji}>📖</Text>
                 <View>
                   <Text style={styles.cardTitle}>홀리피드는</Text>
-                  <Text style={styles.cardDesc}>말씀 탭에서 성경을 읽고 마음에 닿는 구절을 선택 후 묵상해 보세요.</Text>
+                  <Text style={styles.cardDesc}>말씀 탭에서 성경을 읽고 마음에 닿는 {'\n'}구절을 선택 후 묵상해 보세요.</Text>
                 </View>
               </View>
             </View>

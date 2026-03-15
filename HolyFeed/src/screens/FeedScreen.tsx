@@ -95,7 +95,7 @@ export default function FeedScreen() {
 
         {/* Post Content */}
         <Text style={styles.postTitle}>{item.title}</Text>
-        <Text style={styles.postContent}>{item.content}</Text>
+        <Text style={styles.postContent} numberOfLines={5}>{item.content}</Text>
 
         {/* Post Actions (Like, Comment) */}
         <View style={styles.postActions}>
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 100, // 플로팅 네비바와 겹치지 않도록 위로 조정
     right: 24,
     width: 56,
     height: 56,

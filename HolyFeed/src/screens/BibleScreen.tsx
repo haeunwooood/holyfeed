@@ -209,6 +209,7 @@ export default function BibleScreen() {
     const isSelected = selectedVerseIds.includes(verseId);
     const isLiked = likedVerses.includes(verseId);
     const highlightColor = highlightedVerses[verseId];
+    const isLightColor = highlightColor === '#FFF296' || highlightColor === '#9EF0DE';
 
     return (
       <View style={styles.verseContainer}>
@@ -218,13 +219,13 @@ export default function BibleScreen() {
         >
           <Text style={[
             styles.verseNumber, 
-            (highlightColor && highlightColor !== 'transparent' && !isSelected) && { color: 'rgba(255,255,255,0.7)' }
+            (highlightColor && highlightColor !== 'transparent' && !isSelected) && { color: isLightColor ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.7)' }
           ]}>
             {item.verse}
           </Text>
           <Text style={[
             styles.verseText, 
-            (highlightColor && highlightColor !== 'transparent' && !isSelected) && { color: '#FFF' }
+            (highlightColor && highlightColor !== 'transparent' && !isSelected) && { color: isLightColor ? '#000' : '#FFF' }
           ]}>
             {item.text}
           </Text>
@@ -232,7 +233,7 @@ export default function BibleScreen() {
             <Icon 
               name="heart" 
               size={14} 
-              color={(highlightColor && highlightColor !== 'transparent' && !isSelected) ? "#FFF" : "#FF3040"} 
+              color={(highlightColor && highlightColor !== 'transparent' && !isSelected) ? (isLightColor ? "#FF3040" : "#FFF") : "#FF3040"} 
               style={styles.likeIcon} 
             />
           )}
