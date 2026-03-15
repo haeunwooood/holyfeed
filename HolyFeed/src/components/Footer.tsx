@@ -1,14 +1,19 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform, ScrollView } from 'react-native';
 
-export default function Footer() {
-  if (Platform.OS !== 'web') {
-    return null; // 모바일에서는 표시 안 함
+interface FooterProps {
+  isWebWide?: boolean;
+}
+
+export default function Footer({ isWebWide = false }: FooterProps) {
+  // 웹 환경이 아니거나 웹 와이드 환경이 아니면 표시 안 함
+  if (Platform.OS !== 'web' || !isWebWide) {
+    return null;
   }
 
   return (
     <View style={styles.container}>
-      <ScrollView>
+      <ScrollView scrollEnabled={true}>
         <View style={styles.content}>
           {/* 회사 정보 */}
           <View style={styles.section}>
@@ -130,11 +135,13 @@ const styles = StyleSheet.create({
     borderTopColor: '#E0E0E0',
     paddingTop: 24,
     paddingBottom: 24,
+    maxHeight: 400,
   },
   content: {
     maxWidth: 1200,
     marginHorizontal: 'auto',
     paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   section: {
     marginBottom: 32,

@@ -173,7 +173,7 @@ export default function App() {
 
   return (
     <View style={styles.mainWrapper}>
-      <View style={styles.appContent}>
+      <View style={[styles.appContent, { flexDirection: isWebWide ? 'row' : 'column' }]}>
         {isWebWide ? (
           <>
             {/* 왼쪽: 브랜드 소개 영역 */}
@@ -243,8 +243,8 @@ export default function App() {
       )}
       </View>
 
-      {/* Footer (개인정보처리방침, 사업자정보) */}
-      <Footer />
+      {/* Footer (개인정보처리방침, 사업자정보) - 웹 와이드에서만 표시 */}
+      <Footer isWebWide={isWebWide} />
 
       {/* 글로벌 뱃지 알림 모달 (앱 레이아웃 내부에 렌더링) */}
       {showBadgeModal && (
