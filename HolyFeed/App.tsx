@@ -176,6 +176,7 @@ export default function App() {
   return (
     <View style={styles.mainWrapper}>
       <View style={[styles.appContent, { flexDirection: isWebWide ? 'row' : 'column' }]}>
+      <View style={styles.contentWrapper}>
         {isWebWide ? (
           <>
             {/* 왼쪽: 브랜드 소개 영역 */}
@@ -218,7 +219,10 @@ export default function App() {
               </Stack.Navigator>
             </NavigationContainer>
             </View>
-            {/* Footer (웹 와이드에서만 표시, 앱 컨테이너 하단) */}
+          </View>
+
+          {/* Footer (웹 와이드에서만 표시, appContainer 외부) */}
+          <View style={styles.footerWrapper}>
             <Footer 
               isWebWide={isWebWide} 
               onPrivacyPolicyPress={() => navigationRef.current?.navigate('PrivacyPolicy')} 
@@ -252,16 +256,16 @@ export default function App() {
               </Stack.Navigator>
             </NavigationContainer>
           </View>
-          {/* Footer - 모바일에서는 표시 안 함 */}
-          <Footer 
-            isWebWide={isWebWide} 
-            onPrivacyPolicyPress={() => navigationRef.current?.navigate('PrivacyPolicy')} 
-          />
         </View>
       )}
       </View>
+      </View>
 
-      {/* 글로벌 뱃지 알림 모달 (앱 레이아웃 내부에 렌더링) */}
+      {/* Footer (웹 와이드에서만 표시) */}
+      <Footer 
+        isWebWide={isWebWide} 
+        onPrivacyPolicyPress={() => navigationRef.current?.navigate('PrivacyPolicy')} 
+      />
       {showBadgeModal && (
         <View style={styles.badgeModalOverlay}>
           <View style={styles.badgeModalContent}>
@@ -297,7 +301,14 @@ const styles = StyleSheet.create({
   },
   appContent: {
     flex: 1,
+    flexDirection: 'column',
+  },
+  contentWrapper: {
+    flex: 1,
     flexDirection: 'row',
+  },
+  footerWrapper: {
+    backgroundColor: '#FAFAFA',
   },
   webLeftGutter: {
     flex: 1,
