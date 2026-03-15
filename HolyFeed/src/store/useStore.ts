@@ -152,10 +152,24 @@ export const useStore = create<AppState>((set, get) => ({
         { id: 'post_1', label: '묵상 [첫 묵상]', count: 1, current: myPostsCount },
         { id: 'post_10', label: '묵상 [묵상의 시작]', count: 10, current: myPostsCount },
         { id: 'post_100', label: '묵상 [묵상 우등생]', count: 100, current: myPostsCount },
-        { id: 'like_1', label: '좋아요 [첫 아멘]', count: 1, current: likedPosts.length },
-        { id: 'progress_old', label: '진행률 [구약 완독]', count: 100, current: calculateProgress(['old_testament']) },
-        { id: 'progress_new', label: '진행률 [신약 완독]', count: 100, current: calculateProgress(['new_testament']) },
-        { id: 'progress_all', label: '진행률 [성경 일독]', count: 100, current: calculateProgress(['old_testament', 'new_testament']) },
+        { id: 'post_1000', label: '묵상 [묵상의 대가]', count: 1000, current: myPostsCount },
+
+        { id: 'like_1', label: '좋아요 [첫 좋아요]', count: 1, current: likedPosts.length },
+        { id: 'like_10', label: '좋아요 [은혜의 통로]', count: 10, current: likedPosts.length },
+        { id: 'like_100', label: '좋아요 [좋아요 수호자]', count: 100, current: likedPosts.length },
+        { id: 'like_1000', label: '좋아요 [좋아요 전도사]', count: 1000, current: likedPosts.length },
+
+        { id: 'progress_old_1', label: '진행률 [구약의 시작]', count: 1, current: calculateProgress(['old_testament']) },
+        { id: 'progress_old_10', label: '진행률 [구약 탐험가]', count: 10, current: calculateProgress(['old_testament']) },
+        { id: 'progress_old_100', label: '진행률 [구약 완독]', count: 100, current: calculateProgress(['old_testament']) },
+
+        { id: 'progress_new_1', label: '진행률 [신약의 시작]', count: 1, current: calculateProgress(['new_testament']) },
+        { id: 'progress_new_10', label: '진행률 [신약 탐험가]', count: 10, current: calculateProgress(['new_testament']) },
+        { id: 'progress_new_100', label: '진행률 [신약 완독]', count: 100, current: calculateProgress(['new_testament']) },
+
+        { id: 'progress_all_1', label: '진행률 [성경의 시작]', count: 1, current: calculateProgress(['old_testament', 'new_testament']) },
+        { id: 'progress_all_10', label: '진행률 [성경 탐험가]', count: 10, current: calculateProgress(['old_testament', 'new_testament']) },
+        { id: 'progress_all_100', label: '진행률 [성경 일독]', count: 100, current: calculateProgress(['old_testament', 'new_testament']) },
       ];
 
       for (const badge of criteria) {

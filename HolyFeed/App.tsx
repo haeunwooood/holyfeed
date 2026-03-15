@@ -13,6 +13,7 @@ import FeedScreen from './src/screens/FeedScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import GroupScreen from './src/screens/GroupScreen';
+import ComingSoonScreen from './src/screens/ComingSoonScreen';
 import AdminScreen from './src/screens/AdminScreen';
 import ProfileSetupScreen from './src/screens/ProfileSetupScreen';
 import PostDetailScreen from './src/screens/PostDetailScreen';
@@ -140,14 +141,14 @@ export default function App() {
           <View style={styles.webLeftGutter}>
             <View style={styles.introContent}>
               <Text style={styles.introLogo}>HolyFeed</Text>
-              <Text style={styles.introTitle}>말씀으로 시작하는 하루,{'\n'}건강한 영적 교제</Text>
-              <Text style={styles.introSub}>홀리피드에서 매일의 묵상을 기록하고{'\n'}소중한 사람들과 나누어 보세요.</Text>
+              <Text style={styles.introTitle}>묵상으로 시작하는 하루,{'\n'}건강한 영적 교제</Text>
+              <Text style={styles.introSub}>홀리피드에서 매일의 묵상을 기록하고{'\n'}믿음의 사람들과 나누어 보세요.</Text>
               
               <View style={styles.introCard}>
                 <Text style={styles.cardEmoji}>📖</Text>
                 <View>
-                  <Text style={styles.cardTitle}>오늘의 말씀 읽기</Text>
-                  <Text style={styles.cardDesc}>성경을 읽고 마음에 닿는 구절을 저장하세요.</Text>
+                  <Text style={styles.cardTitle}>홀리피드는</Text>
+                  <Text style={styles.cardDesc}>말씀 탭에서 성경을 읽고 마음에 닿는 구절을 선택 후 묵상해 보세요.</Text>
                 </View>
               </View>
             </View>

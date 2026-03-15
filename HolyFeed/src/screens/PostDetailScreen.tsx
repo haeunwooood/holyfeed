@@ -152,7 +152,7 @@ export default function PostDetailScreen() {
         <TouchableOpacity style={styles.actionBtn} onPress={() => toggleLikePost(post.id)}>
           <Icon name={likedPosts.includes(post.id) ? "heart" : "heart-outline"} size={22} color={likedPosts.includes(post.id) ? "#FF3040" : "#333"} />
           <Text style={[styles.actionBtnText, likedPosts.includes(post.id) && { color: '#FF3040', fontWeight: 'bold' }]}>
-            {post.likes > 0 ? `아멘 ${post.likes}` : '아멘'}
+            {post.likes > 0 ? post.likes : ''}
           </Text>
         </TouchableOpacity>
         <View style={styles.actionBtn}>

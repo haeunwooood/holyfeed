@@ -105,7 +105,7 @@ export default function GroupScreen() {
           >
             <Icon name={likedPosts.includes(item.id) ? "heart" : "heart-outline"} size={22} color={likedPosts.includes(item.id) ? "#FF3040" : "#333"} />
             <Text style={[styles.actionBtnText, likedPosts.includes(item.id) && { color: '#FF3040', fontWeight: 'bold' }]}>
-              {item.likes > 0 ? `아멘 ${item.likes}` : '아멘'}
+              {item.likes > 0 ? item.likes : ''}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity 

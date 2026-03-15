@@ -79,14 +79,22 @@ export default function ProfileScreen() {
     { id: 'post_100', category: '묵상', label: '묵상 우등생', count: 100, current: myPosts.length },
     { id: 'post_1000', category: '묵상', label: '묵상의 대가', count: 1000, current: myPosts.length },
     
-    { id: 'like_1', category: '좋아요', label: '첫 아멘', count: 1, current: likedPosts.length },
+    { id: 'like_1', category: '좋아요', label: '첫 좋아요', count: 1, current: likedPosts.length },
     { id: 'like_10', category: '좋아요', label: '은혜의 통로', count: 10, current: likedPosts.length },
-    { id: 'like_100', category: '좋아요', label: '아멘 수호자', count: 100, current: likedPosts.length },
-    { id: 'like_1000', category: '좋아요', label: '아멘 전도사', count: 1000, current: likedPosts.length },
+    { id: 'like_100', category: '좋아요', label: '좋아요 수호자', count: 100, current: likedPosts.length },
+    { id: 'like_1000', category: '좋아요', label: '좋아요 전도사', count: 1000, current: likedPosts.length },
 
-    { id: 'progress_old', category: '진행률', label: '구약 완독', count: 100, current: calculateTotalProgress('old') },
-    { id: 'progress_new', category: '진행률', label: '신약 완독', count: 100, current: calculateTotalProgress('new') },
-    { id: 'progress_all', category: '진행률', label: '성경 일독', count: 100, current: calculateTotalProgress('all') },
+    { id: 'progress_old_1', category: '진행률', label: '구약의 시작', count: 1, current: calculateTotalProgress('old') },
+    { id: 'progress_old_10', category: '진행률', label: '구약 탐험가', count: 10, current: calculateTotalProgress('old') },
+    { id: 'progress_old_100', category: '진행률', label: '구약 완독', count: 100, current: calculateTotalProgress('old') },
+
+    { id: 'progress_new_1', category: '진행률', label: '신약의 시작', count: 1, current: calculateTotalProgress('new') },
+    { id: 'progress_new_10', category: '진행률', label: '신약 탐험가', count: 10, current: calculateTotalProgress('new') },
+    { id: 'progress_new_100', category: '진행률', label: '신약 완독', count: 100, current: calculateTotalProgress('new') },
+
+    { id: 'progress_all_1', category: '진행률', label: '성경의 시작', count: 1, current: calculateTotalProgress('all') },
+    { id: 'progress_all_10', category: '진행률', label: '성경 탐험가', count: 10, current: calculateTotalProgress('all') },
+    { id: 'progress_all_100', category: '진행률', label: '성경 일독', count: 100, current: calculateTotalProgress('all') },
   ];
 
   const renderBadge = ({ item }: { item: any }) => {
