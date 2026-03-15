@@ -17,10 +17,12 @@ import ComingSoonScreen from './src/screens/ComingSoonScreen';
 import AdminScreen from './src/screens/AdminScreen';
 import ProfileSetupScreen from './src/screens/ProfileSetupScreen';
 import PostDetailScreen from './src/screens/PostDetailScreen';
+import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
 import Footer from './src/components/Footer';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
+const navigationRef = React.createRef<any>();
 
 function MainTabs() {
   return (
@@ -195,7 +197,42 @@ export default function App() {
 
           {/* 중앙: 앱 본체 */}
           <View style={styles.appContainer}>
-            <NavigationContainer>
+            <View style={styles.appContentWrapper}>
+              <NavigationContainer ref={navigationRef}>
+                <Stack.Navigator 
+                  screenOptions={{ headerShown: false, presentation: 'modal' }} 
+                  initialRouteName={!isAuthenticated ? 'Login' : initialRoute}
+                >
+                  {!isAuthenticated ? (
+                    <Stack.Screen name="Login" component={LoginScreen} />
+                  ) : (
+                    <>
+                      <Stack.Screen name="Main" component={MainTabs} />
+                      <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} initialParams={{ isInitialSetup: initialRoute === 'ProfileSetup' }} />
+                      <Stack.Screen name="PostDetail" component={PostDetailScreen} />
+                      <Stack.Screen name="Editor" component={EditorScreen} />
+                      <Stack.Screen name="Admin" component={AdminScreen} />
+                      <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+                    </>
+                  )}
+              </Stack.Navigator>
+            </NavigationContainer>
+            </View>
+            {/* Footer (웹 와이드에서만 표시, 앱 컨테이너 하단) */}
+            <Footer 
+              isWebWide={isWebWide} 
+              onPrivacyPolicyPress={() => navigationRef.current?.navigate('PrivacyPolicy')} 
+            />
+          </View>
+
+          {/* 오른쪽: 대칭을 위한 빈 공간 (중앙 정렬 유지용) */}
+          <View style={styles.webRightGutter} />
+        </>
+      ) : (
+        /* 모바일/좁은 화면: 앱 본체만 출력 */
+        <View style={styles.appContainer}>
+          <View style={styles.appContentWrapper}>
+            <NavigationContainer ref={navigationRef}>
               <Stack.Navigator 
                 screenOptions={{ headerShown: false, presentation: 'modal' }} 
                 initialRouteName={!isAuthenticated ? 'Login' : initialRoute}
@@ -209,42 +246,20 @@ export default function App() {
                     <Stack.Screen name="PostDetail" component={PostDetailScreen} />
                     <Stack.Screen name="Editor" component={EditorScreen} />
                     <Stack.Screen name="Admin" component={AdminScreen} />
+                    <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
                   </>
                 )}
               </Stack.Navigator>
             </NavigationContainer>
           </View>
-
-          {/* 오른쪽: 대칭을 위한 빈 공간 (중앙 정렬 유지용) */}
-          <View style={styles.webRightGutter} />
-        </>
-      ) : (
-        /* 모바일/좁은 화면: 앱 본체만 출력 */
-        <View style={styles.appContainer}>
-          <NavigationContainer>
-            <Stack.Navigator 
-              screenOptions={{ headerShown: false, presentation: 'modal' }} 
-              initialRouteName={!isAuthenticated ? 'Login' : initialRoute}
-            >
-              {!isAuthenticated ? (
-                <Stack.Screen name="Login" component={LoginScreen} />
-              ) : (
-                <>
-                  <Stack.Screen name="Main" component={MainTabs} />
-                  <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} initialParams={{ isInitialSetup: initialRoute === 'ProfileSetup' }} />
-                  <Stack.Screen name="PostDetail" component={PostDetailScreen} />
-                  <Stack.Screen name="Editor" component={EditorScreen} />
-                  <Stack.Screen name="Admin" component={AdminScreen} />
-                </>
-              )}
-            </Stack.Navigator>
-          </NavigationContainer>
+          {/* Footer - 모바일에서는 표시 안 함 */}
+          <Footer 
+            isWebWide={isWebWide} 
+            onPrivacyPolicyPress={() => navigationRef.current?.navigate('PrivacyPolicy')} 
+          />
         </View>
       )}
       </View>
-
-      {/* Footer (개인정보처리방침, 사업자정보) - 웹 와이드에서만 표시 */}
-      <Footer isWebWide={isWebWide} />
 
       {/* 글로벌 뱃지 알림 모달 (앱 레이아웃 내부에 렌더링) */}
       {showBadgeModal && (
@@ -348,6 +363,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
     position: 'relative', // absolute 요소(모달)의 기준점이 됨
     overflow: 'hidden', // 모달이 컨테이너를 벗어나지 않도록 함
+    flexDirection: 'column',
     // PC 화면에서 앱처럼 보이도록 테두리/그림자 처리
     ...(Platform.OS === 'web' ? {
       shadowColor: '#000',
@@ -361,6 +377,11 @@ const styles = StyleSheet.create({
     } : {
       flex: 1,
     })
+  },
+  appContentWrapper: {
+    flex: 1,
+    backgroundColor: '#FAFAFA',
+    overflow: 'hidden',
   },
   badgeModalOverlay: {
     ...StyleSheet.absoluteFillObject,
