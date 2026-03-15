@@ -17,6 +17,7 @@ import ComingSoonScreen from './src/screens/ComingSoonScreen';
 import AdminScreen from './src/screens/AdminScreen';
 import ProfileSetupScreen from './src/screens/ProfileSetupScreen';
 import PostDetailScreen from './src/screens/PostDetailScreen';
+import Footer from './src/components/Footer';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -172,10 +173,11 @@ export default function App() {
 
   return (
     <View style={styles.mainWrapper}>
-      {isWebWide ? (
-        <>
-          {/* 왼쪽: 브랜드 소개 영역 */}
-          <View style={styles.webLeftGutter}>
+      <View style={styles.appContent}>
+        {isWebWide ? (
+          <>
+            {/* 왼쪽: 브랜드 소개 영역 */}
+            <View style={styles.webLeftGutter}>
             <View style={styles.introContent}>
               <Text style={styles.introLogo}>HolyFeed</Text>
               <Text style={styles.introTitle}>묵상으로 시작하는 하루,{'\n'}건강한 영적 교제</Text>
@@ -239,6 +241,10 @@ export default function App() {
           </NavigationContainer>
         </View>
       )}
+      </View>
+
+      {/* Footer (개인정보처리방침, 사업자정보) */}
+      <Footer />
 
       {/* 글로벌 뱃지 알림 모달 (앱 레이아웃 내부에 렌더링) */}
       {showBadgeModal && (
@@ -271,8 +277,12 @@ export default function App() {
 const styles = StyleSheet.create({
   mainWrapper: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: 'column',
     backgroundColor: '#FAFAFA',
+  },
+  appContent: {
+    flex: 1,
+    flexDirection: 'row',
   },
   webLeftGutter: {
     flex: 1,
