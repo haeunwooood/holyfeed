@@ -77,7 +77,7 @@ export default function App() {
   const { width } = useWindowDimensions();
   const isWebWide = Platform.OS === 'web' && width > 1000;
   
-  const { isAuthenticated, setAuthenticated, fetchData, showBadgeModal, newBadge, clearNewBadge, setPwaInstallPrompt } = useStore();
+  const { isAuthenticated, setAuthenticated, fetchData, showBadgeModal, newBadge, clearNewBadge, setPwaInstallPrompt, setShowPwaPrompt } = useStore();
   const [isInitializing, setIsInitializing] = useState(true);
   const [initialRoute, setInitialRoute] = useState<'Main' | 'ProfileSetup'>('Main');
 
@@ -133,6 +133,12 @@ export default function App() {
 
     // 3. PWA 설치 프롬프트 감지 (웹 환경에서만)
     if (Platform.OS === 'web') {
+      // 모바일 기기에서만 PWA 배너 표시
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobileDevice) {
+        setShowPwaPrompt(true);
+      }
+
       const handleBeforeInstallPrompt = (e: any) => {
         e.preventDefault();
         setPwaInstallPrompt(e);
