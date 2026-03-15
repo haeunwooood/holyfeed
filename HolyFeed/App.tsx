@@ -156,7 +156,10 @@ export default function App() {
           {/* 중앙: 앱 본체 */}
           <View style={styles.appContainer}>
             <NavigationContainer>
-              <Stack.Navigator screenOptions={{ headerShown: false, presentation: 'modal' }} initialRouteName={initialRoute}>
+              <Stack.Navigator 
+                screenOptions={{ headerShown: false, presentation: 'modal' }} 
+                initialRouteName={!isAuthenticated ? 'Login' : initialRoute}
+              >
                 {!isAuthenticated ? (
                   <Stack.Screen name="Login" component={LoginScreen} />
                 ) : (
@@ -179,7 +182,10 @@ export default function App() {
         /* 모바일/좁은 화면: 앱 본체만 출력 */
         <View style={styles.appContainer}>
           <NavigationContainer>
-            <Stack.Navigator screenOptions={{ headerShown: false, presentation: 'modal' }} initialRouteName={initialRoute}>
+            <Stack.Navigator 
+              screenOptions={{ headerShown: false, presentation: 'modal' }} 
+              initialRouteName={!isAuthenticated ? 'Login' : initialRoute}
+            >
               {!isAuthenticated ? (
                 <Stack.Screen name="Login" component={LoginScreen} />
               ) : (
