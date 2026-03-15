@@ -4,11 +4,14 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { useStore } from '../store/useStore';
 
 export default function PwaInstallBanner() {
-  const { showPwaPrompt, dismissPwaPrompt, pwaInstallPrompt } = useStore();
-  const [isVisible, setIsVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState<'ios' | 'android'>('android');
+  // PWA 배너 비활성화
+  return null;
 
-  useEffect(() => {
+  // const { showPwaPrompt, dismissPwaPrompt, pwaInstallPrompt } = useStore();
+  // const [isVisible, setIsVisible] = useState(false);
+  // const [activeTab, setActiveTab] = useState<'ios' | 'android'>('android');
+
+  // useEffect(() => {
     if (Platform.OS !== 'web' || !showPwaPrompt) {
       setIsVisible(false);
       return;

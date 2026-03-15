@@ -131,34 +131,34 @@ export default function App() {
       handleSession(session);
     });
 
-    // 3. PWA 설치 프롬프트 감지 (웹 환경에서만)
-    if (Platform.OS === 'web') {
-      // 모바일 기기에서만 PWA 배너 표시
-      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      if (isMobileDevice) {
-        setShowPwaPrompt(true);
-      }
+    // 3. PWA 설치 프롬프트 감지 (웹 환경에서만) - 비활성화됨
+    // if (Platform.OS === 'web') {
+    //   // 모바일 기기에서만 PWA 배너 표시
+    //   const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    //   if (isMobileDevice) {
+    //     setShowPwaPrompt(true);
+    //   }
 
-      const handleBeforeInstallPrompt = (e: any) => {
-        e.preventDefault();
-        setPwaInstallPrompt(e);
-      };
-      
-      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    //   const handleBeforeInstallPrompt = (e: any) => {
+    //     e.preventDefault();
+    //     setPwaInstallPrompt(e);
+    //   };
+    //   
+    //   window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-      // 서비스 워커 등록
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/service-worker.js').catch((err) => {
-          console.log('Service Worker registration failed:', err);
-        });
-      }
-    }
+    //   // 서비스 워커 등록
+    //   if ('serviceWorker' in navigator) {
+    //     navigator.serviceWorker.register('/service-worker.js').catch((err) => {
+    //       console.log('Service Worker registration failed:', err);
+    //     });
+    //   }
+    // }
 
     return () => {
       subscription.unsubscribe();
-      if (Platform.OS === 'web') {
-        window.removeEventListener('beforeinstallprompt', () => {});
-      }
+      // if (Platform.OS === 'web') {
+      //   window.removeEventListener('beforeinstallprompt', () => {});
+      // }
     };
   }, []);
 
