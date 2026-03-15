@@ -77,21 +77,12 @@ export default function App() {
   const { width } = useWindowDimensions();
   const isWebWide = Platform.OS === 'web' && width > 1000;
   
-  const { isAuthenticated, setAuthenticated, fetchData, showBadgeModal, newBadge, clearNewBadge } = useStore();
+  const { isAuthenticated, setAuthenticated, fetchData, showBadgeModal, newBadge, clearNewBadge, setPwaInstallPrompt } = useStore();
   const [isInitializing, setIsInitializing] = useState(true);
   const [initialRoute, setInitialRoute] = useState<'Main' | 'ProfileSetup'>('Main');
 
   useEffect(() => {
-    // 1. 앱 실행 시 기존 세션 확인
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      handleSession(session).finally(() => setIsInitializing(false));
-    });
-
-    // 2. 로그인 상태 변경(로그인 성공, 로그아웃 등) 실시간 감지
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      handleSession(session);
-    });
-
+    // handleSession 함수를 먼저 정의
     const handleSession = async (session: any) => {
       if (session?.user) {
         setIsInitializing(true);
@@ -130,8 +121,38 @@ export default function App() {
       }
     };
 
+    // 1. 앱 실행 시 기존 세션 확인
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleSession(session).finally(() => setIsInitializing(false));
+    });
+
+    // 2. 로그인 상태 변경(로그인 성공, 로그아웃 등) 실시간 감지
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      handleSession(session);
+    });
+
+    // 3. PWA 설치 프롬프트 감지 (웹 환경에서만)
+    if (Platform.OS === 'web') {
+      const handleBeforeInstallPrompt = (e: any) => {
+        e.preventDefault();
+        setPwaInstallPrompt(e);
+      };
+      
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+      // 서비스 워커 등록
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/service-worker.js').catch((err) => {
+          console.log('Service Worker registration failed:', err);
+        });
+      }
+    }
+
     return () => {
       subscription.unsubscribe();
+      if (Platform.OS === 'web') {
+        window.removeEventListener('beforeinstallprompt', () => {});
+      }
     };
   }, []);
 

@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useStore, Post } from '../store/useStore';
 import Icon from 'react-native-vector-icons/Ionicons';
 import CommentModal from '../components/CommentModal';
+import PwaInstallBanner from '../components/PwaInstallBanner';
 
 export default function FeedScreen() {
   const navigation = useNavigation<any>();
@@ -162,6 +163,7 @@ export default function FeedScreen() {
         keyExtractor={item => item.id}
         renderItem={renderPost}
         contentContainerStyle={styles.listContent}
+        ListHeaderComponent={<PwaInstallBanner />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Icon name="document-text-outline" size={48} color="#CCC" />

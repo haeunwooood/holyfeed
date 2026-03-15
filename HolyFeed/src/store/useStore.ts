@@ -60,6 +60,13 @@ interface AppState {
   setShowBadgeModal: (show: boolean) => void;
   clearNewBadge: () => void;
   checkBadges: () => Promise<void>;
+
+  // PWA 설치 상태
+  pwaInstallPrompt: any;
+  setPwaInstallPrompt: (prompt: any) => void;
+  showPwaPrompt: boolean;
+  setShowPwaPrompt: (show: boolean) => void;
+  dismissPwaPrompt: () => void;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -78,6 +85,12 @@ export const useStore = create<AppState>((set, get) => ({
   showBadgeModal: false,
   setShowBadgeModal: (show) => set({ showBadgeModal: show }),
   clearNewBadge: () => set({ newBadge: null, showBadgeModal: false }),
+
+  pwaInstallPrompt: null,
+  setPwaInstallPrompt: (prompt) => set({ pwaInstallPrompt: prompt, showPwaPrompt: !!prompt }),
+  showPwaPrompt: false,
+  setShowPwaPrompt: (show) => set({ showPwaPrompt: show }),
+  dismissPwaPrompt: () => set({ showPwaPrompt: false }),
 
   fetchData: async () => {
     const { currentUser } = get();
