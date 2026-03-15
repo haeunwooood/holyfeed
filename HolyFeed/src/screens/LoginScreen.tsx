@@ -14,17 +14,6 @@ export default function LoginScreen() {
     // setAuthenticated(true);
   };
 
-  const handleGuestLogin = () => {
-    // 임시: 둘러보기 버튼 클릭 시 개발용 게스트 계정 부여 (어드민 테스트 가능)
-    setAuthenticated(true, { 
-      id: 'guest_123', 
-      name: '둘러보기 유저', 
-      role: 'admin', 
-      church_id: null, 
-      group_id: null 
-    });
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -37,10 +26,6 @@ export default function LoginScreen() {
           <TouchableOpacity style={styles.kakaoButton} onPress={handleKakaoLogin}>
             <Icon name="chatbubble" size={20} color="#3c1e1e" style={styles.kakaoIcon} />
             <Text style={styles.kakaoButtonText}>카카오로 시작하기</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.guestButton} onPress={handleGuestLogin}>
-            <Text style={styles.guestButtonText}>나중에 할래요 (둘러보기)</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -100,14 +85,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#3c1e1e', // 카카오 공식 로고 폰트 색상
-  },
-  guestButton: {
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  guestButtonText: {
-    fontSize: 14,
-    color: '#888',
-    textDecorationLine: 'underline',
   }
 });
