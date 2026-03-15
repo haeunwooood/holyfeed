@@ -8,7 +8,7 @@ import bibleData from '../data/bible.json';
 
 const BIBLE: any = bibleData;
 
-const HIGHLIGHT_COLORS = ['transparent', '#E2F0CB', '#FFDFD3', '#C5E0B4', '#FEE1E8', '#DDEBF7'];
+const HIGHLIGHT_COLORS = ['transparent', '#EC7480', '#FFB069', '#FFF296', '#9EF0DE', '#85D2FF', '#9884E8'];
 
 const OLD_TESTAMENT_ORDER = [
   '창세기', '출애굽기', '레위기', '민수기', '신명기',
@@ -216,9 +216,26 @@ export default function BibleScreen() {
           onPress={() => handleVersePress(item.verse)}
           style={[styles.verseTouchable, highlightColor && highlightColor !== 'transparent' ? { backgroundColor: highlightColor } : null, isSelected && styles.selectedVerse]}
         >
-          <Text style={styles.verseNumber}>{item.verse}</Text>
-          <Text style={styles.verseText}>{item.text}</Text>
-          {isLiked && <Icon name="heart" size={14} color="#FF3040" style={styles.likeIcon} />}
+          <Text style={[
+            styles.verseNumber, 
+            (highlightColor && highlightColor !== 'transparent' && !isSelected) && { color: 'rgba(255,255,255,0.7)' }
+          ]}>
+            {item.verse}
+          </Text>
+          <Text style={[
+            styles.verseText, 
+            (highlightColor && highlightColor !== 'transparent' && !isSelected) && { color: '#FFF' }
+          ]}>
+            {item.text}
+          </Text>
+          {isLiked && (
+            <Icon 
+              name="heart" 
+              size={14} 
+              color={(highlightColor && highlightColor !== 'transparent' && !isSelected) ? "#FFF" : "#FF3040"} 
+              style={styles.likeIcon} 
+            />
+          )}
         </TouchableOpacity>
       </View>
     );
@@ -373,11 +390,14 @@ export default function BibleScreen() {
                 style={[
                   styles.colorCircle, 
                   { backgroundColor: color === 'transparent' ? '#FFF' : color },
-                  color === 'transparent' && { borderWidth: 1, borderColor: '#CCC' }
                 ]} 
                 onPress={() => handleHighlight(color)} 
               >
-                {color === 'transparent' && <Icon name="close" size={14} color="#CCC" />}
+                {color === 'transparent' && (
+                  <View style={styles.removeHighlightWrapper}>
+                    <View style={styles.diagonalLine} />
+                  </View>
+                )}
               </TouchableOpacity>
             ))}
           </View>
@@ -499,6 +519,21 @@ const styles = StyleSheet.create({
     marginRight: 8,
     borderWidth: 1,
     borderColor: '#E0E0E0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  removeHighlightWrapper: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  diagonalLine: {
+    width: '120%',
+    height: 2,
+    backgroundColor: '#FF3040',
+    transform: [{ rotate: '45deg' }],
   },
   actionButtons: {
     flexDirection: 'row',
