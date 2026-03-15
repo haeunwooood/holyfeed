@@ -231,6 +231,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingVertical: 10,
+    paddingBottom: 100, // 글쓰기 버튼이 북마크를 가리지 않도록 하단 여백 추가
   },
   postContainer: {
     backgroundColor: '#FFF',

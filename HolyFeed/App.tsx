@@ -57,7 +57,7 @@ function MainTabs() {
     >
       <Tab.Screen name="Feed" component={FeedScreen} options={{ tabBarLabel: '피드' }} />
       <Tab.Screen name="Bible" component={BibleScreen} options={{ tabBarLabel: '말씀' }} />
-      <Tab.Screen name="Group" component={GroupScreen} options={{ tabBarLabel: '우리 목장' }} />
+      <Tab.Screen name="Group" component={ComingSoonScreen} options={{ tabBarLabel: '우리 목장' }} />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: '마이페이지' }} />
     </Tab.Navigator>
   );
