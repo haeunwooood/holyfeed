@@ -20,11 +20,13 @@ export default function Footer({ onPrivacyPress }: { onPrivacyPress: () => void 
 
 const styles = StyleSheet.create({
   footerContainer: {
-    backgroundColor: '#f1f1f1',
-    paddingVertical: 30,
+    backgroundColor: '#FAFAFA', // 배경색을 화면 배경색에 맞춤
+    paddingTop: 30,
+    paddingBottom: 6, // 하단 네비게이션을 위해 여백 유지
     alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: '#e7e7e7',
+    marginTop: 20, // 콘텐츠와 간격 추가
   },
   footerText: {
     fontSize: 12,

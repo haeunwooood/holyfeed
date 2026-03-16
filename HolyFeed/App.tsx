@@ -56,7 +56,7 @@ function MainTabs() {
           marginTop: 0, // 텍스트를 위로 살짝 끌어올리기
         },
 
-        tabBarStyle: {
+          tabBarStyle: {
           position: 'absolute',
           bottom: Platform.OS === 'ios' ? 30 : 20,
           left: 20,
@@ -64,13 +64,18 @@ function MainTabs() {
           backgroundColor: '#FFF',
           borderRadius: 20,
           height: 60,
-          shadowColor: '#000',
-          shadowOpacity: 0.1,
-          shadowOffset: { width: 0, height: 5 },
-          shadowRadius: 10,
           elevation: 5,
           borderTopWidth: 0,
           paddingBottom: 0,
+          zIndex: 10, // zIndex 추가
+          ...(Platform.OS === 'web' ? {
+            boxShadow: '0px 5px 10px rgba(0, 0, 0, 0.1)'
+          } : {
+            shadowColor: '#000',
+            shadowOpacity: 0.1,
+            shadowOffset: { width: 0, height: 5 },
+            shadowRadius: 10,
+          })
         },
         tabBarItemStyle: {
           paddingVertical: 10,
@@ -212,7 +217,6 @@ export default function App() {
                 <AppNavigator initialRoute={initialRoute} />
               </NavigationContainer>
             </View>
-            <Footer onPrivacyPress={() => navigationRef.navigate('PrivacyPolicy')} />
           </View>
 
           {/* 오른쪽: 대칭을 위한 빈 공간 (중앙 정렬 유지용) */}
@@ -226,7 +230,6 @@ export default function App() {
               <AppNavigator initialRoute={initialRoute} />
             </NavigationContainer>
           </View>
-          <Footer onPrivacyPress={() => navigationRef.navigate('PrivacyPolicy')} />
         </View>
       )}
 
@@ -330,11 +333,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden', // 모달이 컨테이너를 벗어나지 않도록 함
     // PC 화면에서 앱처럼 보이도록 테두리/그림자 처리
     ...(Platform.OS === 'web' ? {
-      shadowColor: '#000',
-      shadowOpacity: 0.1,
-      shadowOffset: { width: 0, height: 0 },
-      shadowRadius: 30,
-      height: '100vh' as any,
+      boxShadow: '0px 0px 30px rgba(0, 0, 0, 0.1)',
+      // height: '100vh' as any, // Removed for better flex layout behavior
       borderLeftWidth: 1,
       borderRightWidth: 1,
       borderColor: '#EAEAEA',

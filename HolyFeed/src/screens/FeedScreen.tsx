@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useStore, Post } from '../store/useStore';
 import Icon from 'react-native-vector-icons/Ionicons';
 import CommentModal from '../components/CommentModal';
+import Footer from '../components/Footer';
 // import PwaInstallBanner from '../components/PwaInstallBanner'; // PWA 배너 비활성화
 
 export default function FeedScreen() {
@@ -164,6 +165,7 @@ export default function FeedScreen() {
         renderItem={renderPost}
         contentContainerStyle={styles.listContent}
         // ListHeaderComponent={<PwaInstallBanner />} // PWA 배너 비활성화
+        ListFooterComponent={<Footer onPrivacyPress={() => navigation.navigate('PrivacyPolicy')} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Icon name="document-text-outline" size={48} color="#CCC" />
@@ -233,7 +235,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingVertical: 10,
-    paddingBottom: 100, // 글쓰기 버튼이 북마크를 가리지 않도록 하단 여백 추가
+    paddingBottom: 90, // 하단 네비게이션 및 푸터 여유 공간 확보 (원래 100)
   },
   postContainer: {
     backgroundColor: '#FFF',
@@ -348,18 +350,22 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 100, // 플로팅 네비바와 겹치지 않도록 위로 조정
+    bottom: 100, // 하단 플로팅 네비바(60px) + 여백(60px)을 고려하여 위로 띄움
     right: 24,
-    width: 56,
-    height: 56,
+    width: 46,
+    height: 46,
     borderRadius: 28,
     backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    ...(Platform.OS === 'web' ? {
+      boxShadow: '0px 3px 4px rgba(0, 0, 0, 0.3)'
+    } : {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+    })
   }
 });

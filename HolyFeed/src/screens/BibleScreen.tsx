@@ -1,10 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Modal, SafeAreaView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useStore, VerseRef } from '../store/useStore';
 import Icon from 'react-native-vector-icons/Ionicons';
 import bibleData from '../data/bible.json';
+import Footer from '../components/Footer';
 
 const BIBLE: any = bibleData;
 
@@ -31,32 +32,27 @@ export default function BibleScreen() {
   const [selectedBook, setSelectedBook] = useState('창세기');
   const [selectedChapter, setSelectedChapter] = useState(1);
   const [testament, setTestament] = useState<'old_testament' | 'new_testament'>('old_testament');
-  const [bookProgress, setBookProgress] = useState<Record<string, number>>({}); // bookName -> lastReadChapter
-  const [lastReadBook, setLastReadBook] = useState<string | null>(null); // 직전에 보던 성경 저장
+  const { likedVerses, toggleLikeVerse } = useStore();
+  const [selectedVerseIds, setSelectedVerseIds] = useState<string[]>([]);
+  const [highlightedVerses, setHighlightedVerses] = useState<Record<string, string>>({}); // verseId -> color
+  const [bookSelectorVisible, setBookSelectorVisible] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [initialScrollIndex, setInitialScrollIndex] = useState<number | null>(null); // 복원할 스크롤 위치 (인덱스)
+  const [nextChapterModalVisible, setNextChapterModalVisible] = useState(false);
+  const [nextBookInfo, setNextBookInfo] = useState<{ book: string, testament: 'old_testament' | 'new_testament' } | null>(null);
+  const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
     const loadSavedData = async () => {
       try {
-        const [lastReadSaved, progressSaved, prevBookSaved] = await Promise.all([
-          AsyncStorage.getItem('lastReadBible'),
-          AsyncStorage.getItem('bibleBookProgress'),
-          AsyncStorage.getItem('prevReadBook')
-        ]);
+        const lastReadSaved = await AsyncStorage.getItem('lastReadBible');
 
         if (lastReadSaved) {
           const parsed = JSON.parse(lastReadSaved);
           if (parsed.testament) setTestament(parsed.testament);
           if (parsed.book) setSelectedBook(parsed.book);
           if (parsed.chapter) setSelectedChapter(parsed.chapter);
-        }
-
-        if (progressSaved) {
-          setBookProgress(JSON.parse(progressSaved));
-        }
-
-        if (prevBookSaved) {
-          setLastReadBook(prevBookSaved);
+          if (parsed.scrollIndex !== undefined) setInitialScrollIndex(parsed.scrollIndex);
         }
       } catch (e) {
         console.error('Failed to load saved bible data', e);
@@ -67,55 +63,82 @@ export default function BibleScreen() {
     loadSavedData();
   }, []);
 
+  // 스크롤 위치 저장 핸들러
+  const handleScroll = (event: any) => {
+    if (!isLoaded || verses.length === 0) return;
+    
+    // 대략적인 렌더링 아이템의 높이를 가정하여 현재 화면 상단의 아이템 인덱스 계산
+    // (더 정확한 위치를 위해서는 onViewableItemsChanged를 사용하는 것이 좋으나, 
+    // 성능 문제나 복잡성 고려 시 간단한 스크롤 오프셋 기반 인덱스 추정이 많이 쓰입니다)
+    const yOffset = event.nativeEvent.contentOffset.y;
+    // 항목 하나의 대략적인 높이 (패딩, 마진 포함)를 60 정도로 가정
+    const estimatedItemHeight = 60; 
+    const currentIndex = Math.max(0, Math.floor(yOffset / estimatedItemHeight));
+    
+    // 상태에 저장하지 않고 비동기로 바로 스토리지에 업데이트하여 렌더링 성능 저하 방지
+    AsyncStorage.setItem('lastReadBible', JSON.stringify({ 
+      testament, 
+      book: selectedBook, 
+      chapter: selectedChapter,
+      scrollIndex: currentIndex
+    })).catch(e => console.error('Failed to save bible scroll state', e));
+  };
+
   useEffect(() => {
     if (isLoaded) {
       AsyncStorage.setItem('lastReadBible', JSON.stringify({ testament, book: selectedBook, chapter: selectedChapter }))
         .catch(e => console.error('Failed to save bible state', e));
-      
-      // 개별 책 진행률 업데이트
-      setBookProgress(prev => {
-        const currentSaved = prev[selectedBook] || 0;
-        if (selectedChapter > currentSaved) {
-          const newProgress = { ...prev, [selectedBook]: selectedChapter };
-          AsyncStorage.setItem('bibleBookProgress', JSON.stringify(newProgress))
-            .catch(e => console.error('Failed to save book progress', e));
-          return newProgress;
-        }
-        return prev;
-      });
     }
   }, [selectedBook, selectedChapter, testament, isLoaded]);
 
-  const handleBookSelect = async (book: string, lastChapter: number) => {
-    // 현재 보고 있는 책이 새로 선택한 책과 다를 때만 '직전 성경'으로 업데이트
-    if (selectedBook !== book) {
-      setLastReadBook(selectedBook);
-      await AsyncStorage.setItem('prevReadBook', selectedBook);
+  // 성경이나 장이 변경될 때 선택된 구절 초기화 및 스크롤 위치 복원
+  useEffect(() => {
+    if (isLoaded) {
+      setSelectedVerseIds([]);
+      
+      // 처음 로드될 때 저장된 인덱스가 있다면 해당 위치로, 아니면 맨 위로
+      if (initialScrollIndex !== null) {
+        // FlatList가 렌더링될 시간을 약간 주기 위해 setTimeout 사용
+        setTimeout(() => {
+          flatListRef.current?.scrollToIndex({ index: initialScrollIndex, animated: false });
+          setInitialScrollIndex(null); // 한 번 복원 후 초기화
+        }, 100);
+      } else {
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+      }
     }
+  }, [selectedBook, selectedChapter, isLoaded]);
+
+  const handleBookSelect = async (book: string) => {
+    // 현재 보고 있는 책이 새로 선택한 책과 다를 때만 '직전 성경'으로 업데이트
+    // if (selectedBook !== book) {
+    //   setLastReadBook(selectedBook);
+    //   await AsyncStorage.setItem('prevReadBook', selectedBook);
+    // }
     
     setSelectedBook(book);
-    setSelectedChapter(lastChapter > 0 ? lastChapter : 1);
+    setSelectedChapter(1); // Always start at chapter 1 when selecting a new book
     setBookSelectorVisible(false);
   };
 
-  const resetBookProgress = async (bookName: string) => {
-    const newProgress = { ...bookProgress };
-    delete newProgress[bookName];
-    setBookProgress(newProgress);
-    try {
-      await AsyncStorage.setItem('bibleBookProgress', JSON.stringify(newProgress));
-      if (selectedBook === bookName) {
-        setSelectedChapter(1);
-      }
-    } catch (e) {
-      console.error('Failed to reset progress', e);
-    }
-  };
+  // const resetBookProgress = async (bookName: string) => {
+  //   const newProgress = { ...bookProgress };
+  //   delete newProgress[bookName];
+  //   setBookProgress(newProgress);
+  //   try {
+  //     await AsyncStorage.setItem('bibleBookProgress', JSON.stringify(newProgress));
+  //     if (selectedBook === bookName) {
+  //       setSelectedChapter(1);
+  //     }
+  //   } catch (e) {
+  //     console.error('Failed to reset progress', e);
+  //   }
+  // };
 
-  const { likedVerses, toggleLikeVerse } = useStore();
-  const [selectedVerseIds, setSelectedVerseIds] = useState<string[]>([]);
-  const [highlightedVerses, setHighlightedVerses] = useState<Record<string, string>>({}); // verseId -> color
-  const [bookSelectorVisible, setBookSelectorVisible] = useState(false);
+  // const { likedVerses, toggleLikeVerse } = useStore();
+  // const [selectedVerseIds, setSelectedVerseIds] = useState<string[]>([]);
+  // const [highlightedVerses, setHighlightedVerses] = useState<Record<string, string>>({}); // verseId -> color
+  // const [bookSelectorVisible, setBookSelectorVisible] = useState(false);
 
   const handleTestamentChange = (newTestament: 'old_testament' | 'new_testament') => {
     setTestament(newTestament);
@@ -144,6 +167,100 @@ export default function BibleScreen() {
   const currentBookData = BIBLE[testament][selectedBook];
   const currentChapterData = currentBookData?.find((c: any) => c.chapter === selectedChapter);
   const verses = currentChapterData ? Object.entries(currentChapterData.verses).map(([v, text]) => ({ verse: parseInt(v), text: text as string })) : [];
+
+  const handlePrevChapter = () => {
+    if (selectedChapter > 1) {
+      setSelectedChapter(selectedChapter - 1);
+    } else {
+      // 이전 책 찾기
+      const currentBookIndex = orderArray.indexOf(selectedBook);
+      let prevBook = null;
+      let prevTestament = testament;
+      let prevBookMaxChapter = 1;
+
+      if (currentBookIndex > 0) {
+        prevBook = orderArray[currentBookIndex - 1];
+      } else if (testament === 'new_testament') {
+        prevTestament = 'old_testament';
+        prevBook = OLD_TESTAMENT_ORDER[OLD_TESTAMENT_ORDER.length - 1]; // 말라기
+      }
+
+      if (prevBook) {
+        const prevBookData = BIBLE[prevTestament][prevBook];
+        prevBookMaxChapter = prevBookData?.length || 1;
+        setTestament(prevTestament);
+        setSelectedBook(prevBook);
+        setSelectedChapter(prevBookMaxChapter); // 이전 책의 마지막 장으로 이동
+      } else {
+        // 성경 전체 처음 (창세기 1장)
+        console.log('성경의 첫 장입니다.');
+      }
+    }
+  };
+
+  // const handlePrevChapter = () => {
+  //   if (selectedChapter > 1) {
+  //     setSelectedChapter(selectedChapter - 1);
+  //   } else {
+  //     // 이전 책 찾기
+  //     const currentBookIndex = orderArray.indexOf(selectedBook);
+  //     let prevBook = null;
+  //     let prevTestament = testament;
+
+  //     if (currentBookIndex > 0) {
+  //       prevBook = orderArray[currentBookIndex - 1];
+  //     } else if (testament === 'new_testament') {
+  //       prevTestament = 'old_testament';
+  //       prevBook = OLD_TESTAMENT_ORDER[OLD_TESTAMENT_ORDER.length - 1];
+  //     }
+
+  //     if (prevBook) {
+  //       setTestament(prevTestament);
+  //       setSelectedBook(prevBook);
+  //       const prevBookData = BIBLE[prevTestament][prevBook];
+  //       setSelectedChapter(prevBookData?.length || 1); // 이전 성경의 마지막 장으로 이동
+  //     } else {
+  //       console.log('성경의 첫 장입니다.');
+  //     }
+  //   }
+  // };
+
+  const handleNextChapter = () => {
+    const currentBookMaxChapter = currentBookData?.length || 1;
+    if (selectedChapter < currentBookMaxChapter) {
+      setSelectedChapter(selectedChapter + 1);
+    } else {
+      // 다음 책 찾기
+      const currentBookIndex = orderArray.indexOf(selectedBook);
+      let nextBook = null;
+      let nextTestament = testament;
+
+      if (currentBookIndex !== -1 && currentBookIndex < orderArray.length - 1) {
+        nextBook = orderArray[currentBookIndex + 1];
+      } else if (testament === 'old_testament') {
+        nextTestament = 'new_testament';
+        nextBook = NEW_TESTAMENT_ORDER[0];
+      }
+
+      if (nextBook) {
+        setNextBookInfo({ book: nextBook, testament: nextTestament });
+        setNextChapterModalVisible(true);
+      } else {
+        // 성경 전체 마지막 (요한계시록 마지막 장)
+        console.log('성경의 마지막 장입니다.');
+      }
+    }
+  };
+
+  const confirmNextBook = () => {
+    if (nextBookInfo) {
+      setTestament(nextBookInfo.testament);
+      setSelectedBook(nextBookInfo.book);
+      setSelectedChapter(1);
+      setNextChapterModalVisible(false);
+      setNextBookInfo(null);
+    }
+  };
 
   const handleVersePress = (verse: number) => {
     const verseId = `${selectedBook}_${selectedChapter}_${verse}`;
@@ -242,22 +359,22 @@ export default function BibleScreen() {
     );
   };
 
-  const calculateTestamentProgress = (t: 'old_testament' | 'new_testament') => {
-    const testamentBooks = BIBLE[t];
-    let totalChapters = 0;
-    let readChapters = 0;
+  // const calculateTestamentProgress = (t: 'old_testament' | 'new_testament') => {
+  //   const testamentBooks = BIBLE[t];
+  //   let totalChapters = 0;
+  //   let readChapters = 0;
 
-    Object.keys(testamentBooks).forEach(bookName => {
-      totalChapters += testamentBooks[bookName].length;
-      readChapters += bookProgress[bookName] || 0;
-    });
+  //   Object.keys(testamentBooks).forEach(bookName => {
+  //     totalChapters += testamentBooks[bookName].length;
+  //     readChapters += bookProgress[bookName] || 0;
+  //   });
 
-    return Math.floor((readChapters / totalChapters) * 100);
-  };
+  //   return Math.floor((readChapters / totalChapters) * 100);
+  // };
 
   const renderBookSelector = () => {
-    const oldProgress = calculateTestamentProgress('old_testament');
-    const newProgress = calculateTestamentProgress('new_testament');
+    // const oldProgress = calculateTestamentProgress('old_testament');
+    // const newProgress = calculateTestamentProgress('new_testament');
 
     const content = (
       <View style={styles.modalContainer}>
@@ -272,50 +389,35 @@ export default function BibleScreen() {
             <TouchableOpacity onPress={() => handleTestamentChange('old_testament')} style={[styles.testamentBtn, testament === 'old_testament' && styles.testamentBtnActive]}>
               <View style={styles.testamentBtnContent}>
                 <Text style={[styles.testamentText, testament === 'old_testament' && styles.testamentTextActive]}>구약</Text>
-                <Text style={[styles.testamentPercent, testament === 'old_testament' && styles.testamentTextActive]}>{oldProgress}%</Text>
+                {/* <Text style={[styles.testamentPercent, testament === 'old_testament' && styles.testamentTextActive]}>{oldProgress}%</Text> */}
               </View>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => handleTestamentChange('new_testament')} style={[styles.testamentBtn, testament === 'new_testament' && styles.testamentBtnActive]}>
               <View style={styles.testamentBtnContent}>
                 <Text style={[styles.testamentText, testament === 'new_testament' && styles.testamentTextActive]}>신약</Text>
-                <Text style={[styles.testamentPercent, testament === 'new_testament' && styles.testamentTextActive]}>{newProgress}%</Text>
+                {/* <Text style={[styles.testamentPercent, testament === 'new_testament' && styles.testamentTextActive]}>{newProgress}%</Text> */}
               </View>
             </TouchableOpacity>
           </View>
           <ScrollView>
             {books.map(book => {
               const bookData = BIBLE[testament][book];
-              const lastChapter = bookProgress[book] || 0;
-              const totalChapters = bookData?.length || 1;
-              const percent = Math.round((lastChapter / totalChapters) * 100);
-              const isPrevious = lastReadBook === book; // 직전에 읽던 책인가?
+              // const lastChapter = bookProgress[book] || 0;
+              // const totalChapters = bookData?.length || 1;
+              // const percent = Math.round((lastChapter / totalChapters) * 100);
+              // const isPrevious = lastReadBook === book; // 직전에 읽던 책인가?
               const isCurrent = selectedBook === book; // 현재 보고 있는 책인가?
 
               return (
                 <View key={book}>
                   <TouchableOpacity 
-                    style={[styles.bookListItem, isPrevious && styles.lastReadItem]}
-                    onPress={() => handleBookSelect(book, lastChapter)}
+                    style={[styles.bookListItem]}
+                    onPress={() => handleBookSelect(book)}
                   >
                     <View style={styles.bookListLeft}>
                       <Text style={[styles.bookListText, isCurrent && styles.bookListTextActive]}>{book}</Text>
-                      {isPrevious && (
-                        <View style={styles.lastBadge}>
-                          <Text style={styles.lastBadgeText}>마지막</Text>
-                        </View>
-                      )}
                     </View>
                     <View style={styles.bookListRight}>
-                      <View style={styles.unifiedProgress}>
-                        <View style={[styles.unifiedProgressFill, { width: `${percent}%` }]} />
-                        <Text style={[styles.unifiedProgressText, percent > 50 && { color: '#FFF' }]}>{percent}%</Text>
-                      </View>
-                      <TouchableOpacity 
-                        style={styles.resetBtn} 
-                        onPress={() => resetBookProgress(book)}
-                      >
-                        <Icon name="refresh-outline" size={16} color="#999" />
-                      </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
                 </View>
@@ -343,13 +445,13 @@ export default function BibleScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 상단 네비게이션바: 책 선택기 및 진행도 */}
+      {/* 상단 네비게이션바: 책 선택기 */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setBookSelectorVisible(true)} style={styles.bookSelectorBtn}>
           <Text style={styles.headerTitle}>{selectedBook} {selectedChapter}장</Text>
           <Icon name="chevron-down" size={20} color="#000" />
         </TouchableOpacity>
-        <View style={styles.progressContainer}>
+        {/* <View style={styles.progressContainer}>
           <View style={styles.progressTrack}>
             <View 
               style={[
@@ -361,25 +463,40 @@ export default function BibleScreen() {
           <Text style={styles.progressText}>
             {Math.round((selectedChapter / (currentBookData?.length || 1)) * 100)}%
           </Text>
-        </View>
+        </View> */}
       </View>
 
       <FlatList
+        ref={flatListRef}
         data={verses}
         keyExtractor={item => item.verse.toString()}
         renderItem={renderVerse}
         contentContainerStyle={styles.listContent}
+        onScroll={handleScroll}
+        scrollEventThrottle={16} // 스크롤 이벤트 발생 주기 (ms)
+        onScrollToIndexFailed={(info) => {
+          // 인덱스 위치를 찾지 못했을 때의 예외 처리
+          const wait = new Promise(resolve => setTimeout(resolve, 100));
+          wait.then(() => {
+            flatListRef.current?.scrollToIndex({ index: info.index, animated: true });
+          });
+        }}
       />
 
-      {/* 장 이동 버튼 */}
-      <View style={styles.chapterNav}>
-        <TouchableOpacity onPress={() => setSelectedChapter(Math.max(1, selectedChapter - 1))} style={styles.navBtn}>
-          <Icon name="chevron-back" size={24} color="#000" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => setSelectedChapter(selectedChapter + 1)} style={styles.navBtn}>
-          <Icon name="chevron-forward" size={24} color="#000" />
-        </TouchableOpacity>
-      </View>
+      {/* 장 이동 버튼 (좌우 분리) */}
+      <TouchableOpacity 
+        onPress={handlePrevChapter} 
+        style={[styles.navBtn, styles.navBtnLeft]}
+      >
+        <Icon name="chevron-back" size={24} color="#000" />
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        onPress={handleNextChapter} 
+        style={[styles.navBtn, styles.navBtnRight]}
+      >
+        <Icon name="chevron-forward" size={24} color="#000" />
+      </TouchableOpacity>
 
       {/* 다중 선택 액션 메뉴 (하단 플로팅 바) */}
       {selectedVerseIds.length > 0 && (
@@ -415,6 +532,30 @@ export default function BibleScreen() {
 
       {/* 책 선택 모달 */}
       {renderBookSelector()}
+
+      {/* 다음 권 이동 모달 */}
+      <Modal visible={nextChapterModalVisible} animationType="fade" transparent={true}>
+        <View style={styles.nextBookModalOverlay}>
+          <View style={styles.nextBookModalContent}>
+            <Text style={styles.nextBookModalTitle}>{selectedBook} 마지막 장입니다.</Text>
+            <Text style={styles.nextBookModalSub}>다음 {nextBookInfo?.book} 1장으로 이동할까요?</Text>
+            <View style={styles.nextBookModalButtons}>
+              <TouchableOpacity 
+                style={styles.nextBookModalBtn} 
+                onPress={() => setNextChapterModalVisible(false)}
+              >
+                <Text style={styles.nextBookModalBtnText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.nextBookModalBtn, styles.nextBookModalBtnPrimary]} 
+                onPress={confirmNextBook}
+              >
+                <Text style={[styles.nextBookModalBtnText, { color: '#FFF' }]}>확인</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -469,7 +610,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 20,
-    paddingBottom: 100, // 여백 확보
+    paddingBottom: 200, // Increase padding to make space for floating action bar and chapter nav
   },
   verseContainer: {
     marginBottom: 8,
@@ -505,7 +646,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     padding: 12,
     backgroundColor: '#F5F5F5',
-    borderRadius: 8,
+    borderRadius: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -514,8 +655,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   colorCircle: {
-    width: 24,
-    height: 24,
+    width: 16,
+    height: 16,
     borderRadius: 12,
     marginRight: 8,
     borderWidth: 1,
@@ -542,59 +683,73 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 16,
+    marginRight: 8,
   },
   meditateButton: {
     backgroundColor: '#000',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
+    marginRight: 0,
   },
   actionText: {
     marginLeft: 4,
     fontSize: 14,
     fontWeight: '600',
   },
-  chapterNav: {
-    position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 50,
-  },
+  // 장 이동 버튼 (공통)
   navBtn: {
+    position: 'absolute',
+    top: '50%', // 세로 중앙
+    marginTop: -24, // 높이의 절반만큼 위로 올려서 정확한 중앙 정렬
     width: 48,
     height: 48,
     backgroundColor: '#FFF',
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 4,
+    elevation: 5,
+    zIndex: 10,
+    ...(Platform.OS === 'web' ? {
+      boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.15)'
+    } : {
+      shadowColor: '#000',
+      shadowOpacity: 0.15,
+      shadowOffset: { width: 0, height: 2 },
+      shadowRadius: 8,
+    })
   },
+  // 왼쪽 버튼 (절반만 보이게)
+  navBtnLeft: {
+    left: -20, // 너비의 절반만큼 왼쪽으로 뺌
+  },
+  // 오른쪽 버튼 (절반만 보이게)
+  navBtnRight: {
+    right: -20, // 너비의 절반만큼 오른쪽으로 뺌
+  },
+  // 플로팅 액션 바 스타일
   floatingActionBar: {
     position: 'absolute',
-    bottom: 80, // 장 이동 버튼 위에 표시
-    left: 16,
-    right: 16,
+    bottom: 100, // 장 이동 버튼(bottom 90 + 높이 48 + 여백) 위에 표시
+    left: 20,
+    right: 20,
     backgroundColor: '#FFF',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
     elevation: 6,
     borderWidth: 1,
     borderColor: '#EAEAEA',
+    ...(Platform.OS === 'web' ? {
+      boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.15)'
+    } : {
+      shadowColor: '#000',
+      shadowOpacity: 0.15,
+      shadowOffset: { width: 0, height: 4 },
+      shadowRadius: 10,
+    })
   },
   modalContainer: {
     flex: 1,
@@ -607,6 +762,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     height: '70%',
     padding: 20,
+    paddingBottom: 100, // 모달 하단 네비게이션 가려지는 부분 확보
   },
   modalHeader: {
     flexDirection: 'row',
@@ -639,11 +795,15 @@ const styles = StyleSheet.create({
   },
   testamentBtnActive: {
     backgroundColor: '#FFF',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
     elevation: 2,
+    ...(Platform.OS === 'web' ? {
+      boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.05)'
+    } : {
+      shadowColor: '#000',
+      shadowOpacity: 0.05,
+      shadowOffset: { width: 0, height: 2 },
+      shadowRadius: 4,
+    })
   },
   testamentText: {
     color: '#888',
@@ -675,50 +835,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  lastBadge: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginLeft: 8,
-  },
-  lastBadgeText: {
-    color: '#FFF',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
   bookListRight: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  unifiedProgress: {
-    width: 70,
-    height: 18,
-    backgroundColor: '#EAEAEA',
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    overflow: 'hidden',
-    marginRight: 10,
-  },
-  unifiedProgressFill: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    backgroundColor: '#000',
-  },
-  unifiedProgressText: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#666',
-    zIndex: 1,
-  },
-  resetBtn: {
-    padding: 4,
-    backgroundColor: '#F0F0F0',
-    borderRadius: 4,
   },
   bookListText: {
     fontSize: 16,
@@ -727,5 +846,36 @@ const styles = StyleSheet.create({
   bookListTextActive: {
     fontWeight: 'bold',
     color: '#000',
-  }
+  },
+  // 모달 스타일 (다음 책 이동)
+  nextBookModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  nextBookModalContent: {
+    width: '80%',
+    maxWidth: 340,
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 30,
+    alignItems: 'center',
+    elevation: 5,
+    ...(Platform.OS === 'web' ? {
+      boxShadow: '0px 10px 20px rgba(0, 0, 0, 0.2)'
+    } : {
+      shadowColor: '#000',
+      shadowOpacity: 0.2,
+      shadowOffset: { width: 0, height: 10 },
+      shadowRadius: 20,
+    })
+  },
+  nextBookModalTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 8, textAlign: 'center' },
+  nextBookModalSub: { fontSize: 15, color: '#666', textAlign: 'center', marginBottom: 24 },
+  nextBookModalButtons: { flexDirection: 'row', width: '100%' },
+  nextBookModalBtn: { flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 12, backgroundColor: '#F5F5F5' },
+  nextBookModalBtnPrimary: { backgroundColor: '#000', marginLeft: 10 },
+  nextBookModalBtnText: { fontSize: 15, fontWeight: 'bold', color: '#666' }
 });

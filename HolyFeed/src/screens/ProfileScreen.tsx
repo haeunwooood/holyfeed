@@ -1,45 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Image, ScrollView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useStore, Post } from '../store/useStore';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { supabase } from '../lib/supabase';
 import bibleData from '../data/bible.json';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Footer from '../components/Footer';
 
 const BIBLE: any = bibleData;
 
 export default function ProfileScreen() {
   const navigation = useNavigation<any>();
-  const { posts, likedVerses, likedPosts, bookmarkedPosts, currentUser, setAuthenticated, earnedBadges } = useStore();
-  const [activeTab, setActiveTab] = useState<'MyPosts' | 'SavedPosts' | 'SavedVerses' | 'Badges'>('MyPosts');
-  const [bookProgress, setBookProgress] = useState<Record<string, number>>({});
+  const { posts, likedVerses, likedPosts, bookmarkedPosts, currentUser, setAuthenticated } = useStore();
+  const [activeTab, setActiveTab] = useState<'MyPosts' | 'SavedPosts' | 'SavedVerses'>('MyPosts');
   
-  useEffect(() => {
-    const loadProgress = async () => {
-      const saved = await AsyncStorage.getItem('bibleBookProgress');
-      if (saved) setBookProgress(JSON.parse(saved));
-    };
-    loadProgress();
-  }, []);
-
-  const calculateTotalProgress = (type: 'old' | 'new' | 'all') => {
-    let total = 0;
-    let read = 0;
-
-    const count = (testament: string) => {
-      Object.keys(BIBLE[testament]).forEach(book => {
-        total += BIBLE[testament][book].length;
-        read += bookProgress[book] || 0;
-      });
-    };
-
-    if (type === 'old' || type === 'all') count('old_testament');
-    if (type === 'new' || type === 'all') count('new_testament');
-
-    return Math.floor((read / total) * 100);
-  };
-
   const myPosts = posts.filter(p => p.authorId === currentUser?.id);
   const savedPosts = posts.filter(p => bookmarkedPosts.includes(p.id));
 
@@ -73,42 +48,42 @@ export default function ProfileScreen() {
     );
   };
 
-  const badgeCriteria = [
-    { id: 'post_1', category: '묵상', label: '첫 묵상', count: 1, current: myPosts.length },
-    { id: 'post_10', category: '묵상', label: '묵상의 시작', count: 10, current: myPosts.length },
-    { id: 'post_100', category: '묵상', label: '묵상 우등생', count: 100, current: myPosts.length },
-    { id: 'post_1000', category: '묵상', label: '묵상의 대가', count: 1000, current: myPosts.length },
+  // const badgeCriteria = [
+  //   { id: 'post_1', category: '묵상', label: '첫 묵상', count: 1, current: myPosts.length },
+  //   { id: 'post_10', category: '묵상', label: '묵상의 시작', count: 10, current: myPosts.length },
+  //   { id: 'post_100', category: '묵상', label: '묵상 우등생', count: 100, current: myPosts.length },
+  //   { id: 'post_1000', category: '묵상', label: '묵상의 대가', count: 1000, current: myPosts.length },
     
-    { id: 'like_1', category: '좋아요', label: '첫 좋아요', count: 1, current: likedPosts.length },
-    { id: 'like_10', category: '좋아요', label: '은혜의 통로', count: 10, current: likedPosts.length },
-    { id: 'like_100', category: '좋아요', label: '좋아요 수호자', count: 100, current: likedPosts.length },
-    { id: 'like_1000', category: '좋아요', label: '좋아요 전도사', count: 1000, current: likedPosts.length },
+  //   { id: 'like_1', category: '좋아요', label: '첫 좋아요', count: 1, current: likedPosts.length },
+  //   { id: 'like_10', category: '좋아요', label: '은혜의 통로', count: 10, current: likedPosts.length },
+  //   { id: 'like_100', category: '좋아요', label: '좋아요 수호자', count: 100, current: likedPosts.length },
+  //   { id: 'like_1000', category: '좋아요', label: '좋아요 전도사', count: 1000, current: likedPosts.length },
 
-    { id: 'progress_old_1', category: '진행률', label: '구약의 시작', count: 1, current: calculateTotalProgress('old') },
-    { id: 'progress_old_10', category: '진행률', label: '구약 탐험가', count: 10, current: calculateTotalProgress('old') },
-    { id: 'progress_old_100', category: '진행률', label: '구약 완독', count: 100, current: calculateTotalProgress('old') },
+  //   { id: 'progress_old_1', category: '진행률', label: '구약의 시작', count: 1, current: calculateTotalProgress('old') },
+  //   { id: 'progress_old_10', category: '진행률', label: '구약 탐험가', count: 10, current: calculateTotalProgress('old') },
+  //   { id: 'progress_old_100', category: '진행률', label: '구약 완독', count: 100, current: calculateTotalProgress('old') },
 
-    { id: 'progress_new_1', category: '진행률', label: '신약의 시작', count: 1, current: calculateTotalProgress('new') },
-    { id: 'progress_new_10', category: '진행률', label: '신약 탐험가', count: 10, current: calculateTotalProgress('new') },
-    { id: 'progress_new_100', category: '진행률', label: '신약 완독', count: 100, current: calculateTotalProgress('new') },
+  //   { id: 'progress_new_1', category: '진행률', label: '신약의 시작', count: 1, current: calculateTotalProgress('new') },
+  //   { id: 'progress_new_10', category: '진행률', label: '신약 탐험가', count: 10, current: calculateTotalProgress('new') },
+  //   { id: 'progress_new_100', category: '진행률', label: '신약 완독', count: 100, current: calculateTotalProgress('new') },
 
-    { id: 'progress_all_1', category: '진행률', label: '성경의 시작', count: 1, current: calculateTotalProgress('all') },
-    { id: 'progress_all_10', category: '진행률', label: '성경 탐험가', count: 10, current: calculateTotalProgress('all') },
-    { id: 'progress_all_100', category: '진행률', label: '성경 일독', count: 100, current: calculateTotalProgress('all') },
-  ];
+  //   { id: 'progress_all_1', category: '진행률', label: '성경의 시작', count: 1, current: calculateTotalProgress('all') },
+  //   { id: 'progress_all_10', category: '진행률', label: '성경 탐험가', count: 10, current: calculateTotalProgress('all') },
+  //   { id: 'progress_all_100', category: '진행률', label: '성경 일독', count: 100, current: calculateTotalProgress('all') },
+  // ];
 
-  const renderBadge = ({ item }: { item: any }) => {
-    const isEarned = earnedBadges.includes(item.id) || item.current >= item.count;
-    return (
-      <View style={[styles.badgeCard, !isEarned && styles.badgeLocked]}>
-        <View style={[styles.badgeIconBox, isEarned ? styles.badgeActive : styles.badgeInactive]}>
-          <Icon name={isEarned ? "ribbon" : "lock-closed"} size={32} color={isEarned ? "#FFD700" : "#CCC"} />
-        </View>
-        <Text style={styles.badgeLabel}>{item.label}</Text>
-        <Text style={styles.badgeProgress}>{Math.min(item.current, item.count)} / {item.count}</Text>
-      </View>
-    );
-  };
+  // const renderBadge = ({ item }: { item: any }) => {
+  //   const isEarned = earnedBadges.includes(item.id) || item.current >= item.count; 
+  //   return (
+  //     <View style={[styles.badgeCard, !isEarned && styles.badgeLocked]}>
+  //       <View style={[styles.badgeIconBox, isEarned ? styles.badgeActive : styles.badgeInactive]}>
+  //         <Icon name={isEarned ? "ribbon" : "lock-closed"} size={32} color={isEarned ? "#FFD700" : "#CCC"} />
+  //       </View>
+  //       <Text style={styles.badgeLabel}>{item.label}</Text>
+  //       <Text style={styles.badgeProgress}>{Math.min(item.current, item.count)} / {item.count}</Text>
+  //     </View>
+  //   );
+  // };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -155,9 +130,6 @@ export default function ProfileScreen() {
           <TouchableOpacity onPress={() => setActiveTab('SavedVerses')} style={[styles.tabBtn, activeTab === 'SavedVerses' && styles.tabBtnActive]}>
             <Text style={[styles.tabText, activeTab === 'SavedVerses' && styles.tabTextActive]}>저장한 말씀</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setActiveTab('Badges')} style={[styles.tabBtn, activeTab === 'Badges' && styles.tabBtnActive]}>
-            <Text style={[styles.tabText, activeTab === 'Badges' && styles.tabTextActive]}>뱃지</Text>
-          </TouchableOpacity>
         </ScrollView>
       </View>
 
@@ -167,6 +139,8 @@ export default function ProfileScreen() {
             data={myPosts}
             keyExtractor={item => item.id}
             renderItem={renderPost}
+            ListFooterComponent={<Footer onPrivacyPress={() => navigation.navigate('PrivacyPolicy')} />}
+            contentContainerStyle={styles.listContent}
             ListEmptyComponent={<Text style={styles.emptyText}>작성한 묵상이 없습니다.</Text>}
           />
         )}
@@ -175,6 +149,8 @@ export default function ProfileScreen() {
             data={savedPosts}
             keyExtractor={item => item.id}
             renderItem={renderPost}
+            ListFooterComponent={<Footer onPrivacyPress={() => navigation.navigate('PrivacyPolicy')} />}
+            contentContainerStyle={styles.listContent}
             ListEmptyComponent={<Text style={styles.emptyText}>저장한 묵상이 없습니다.</Text>}
           />
         )}
@@ -183,16 +159,9 @@ export default function ProfileScreen() {
             data={likedVerses}
             keyExtractor={item => item}
             renderItem={renderVerse}
+            ListFooterComponent={<Footer onPrivacyPress={() => navigation.navigate('PrivacyPolicy')} />}
+            contentContainerStyle={styles.listContent}
             ListEmptyComponent={<Text style={styles.emptyText}>저장한 말씀이 없습니다.</Text>}
-          />
-        )}
-        {activeTab === 'Badges' && (
-          <FlatList
-            data={badgeCriteria}
-            keyExtractor={item => item.id}
-            renderItem={renderBadge}
-            numColumns={3}
-            contentContainerStyle={styles.badgeList}
           />
         )}
       </View>
@@ -232,7 +201,8 @@ const styles = StyleSheet.create({
   tabBtnActive: { borderBottomWidth: 2, borderBottomColor: '#000' },
   tabText: { fontSize: 15, color: '#888', fontWeight: '600' },
   tabTextActive: { color: '#000', fontWeight: 'bold' },
-  contentContainer: { flex: 1, padding: 16 },
+  contentContainer: { flex: 1 },
+  listContent: { padding: 16, paddingBottom: 100 },
   emptyText: { textAlign: 'center', marginTop: 40, color: '#999', fontSize: 14 },
   postCard: {
     backgroundColor: '#FFF',
@@ -257,48 +227,4 @@ const styles = StyleSheet.create({
   },
   verseIcon: { marginRight: 12 },
   verseRef: { fontSize: 15, fontWeight: 'bold', color: '#111' },
-  
-  // 뱃지 관련 스타일
-  badgeList: { paddingBottom: 20 },
-  badgeCard: {
-    flex: 1/3,
-    alignItems: 'center',
-    marginBottom: 24,
-    padding: 10,
-  },
-  badgeLocked: { opacity: 0.5 },
-  badgeIconBox: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-    backgroundColor: '#F5F5F5',
-  },
-  badgeActive: { backgroundColor: '#FFF9C4', elevation: 2 },
-  badgeInactive: { backgroundColor: '#F5F5F5' },
-  badgeLabel: { fontSize: 12, fontWeight: 'bold', color: '#333', textAlign: 'center', marginBottom: 2 },
-  badgeProgress: { fontSize: 10, color: '#888' },
-  
-  // 모달 스타일
-  badgeModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  badgeModalContent: {
-    width: '80%',
-    backgroundColor: '#FFF',
-    borderRadius: 24,
-    padding: 30,
-    alignItems: 'center',
-  },
-  badgeModalTitle: { fontSize: 22, fontWeight: 'bold', color: '#333', marginBottom: 8 },
-  badgeModalSub: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 24 },
-  badgeModalButtons: { flexDirection: 'row', width: '100%' },
-  badgeModalBtn: { flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 12 },
-  badgeModalBtnPrimary: { backgroundColor: '#000', marginLeft: 10 },
-  badgeModalBtnText: { fontSize: 16, fontWeight: 'bold', color: '#888' }
 });
