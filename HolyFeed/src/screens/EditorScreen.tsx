@@ -1,17 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform, Modal } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useStore, VerseRef } from '../store/useStore';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 
 export default function EditorScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const editPostId = route.params?.editPostId;
   const initialVerses: VerseRef[] = route.params?.initialVerses || [];
-  const richText = useRef<any>(null); // RichEditor 참조
 
   const { addPost, posts, updatePost } = useStore();
   
@@ -177,39 +175,17 @@ export default function EditorScreen() {
             value={title}
             onChangeText={setTitle}
           />
-
-          <View style={styles.editorContainer}>
-            <RichToolbar
-              editor={richText}
-              actions={[
-                actions.setBold,
-                actions.setItalic,
-                actions.setUnderline,
-                actions.heading1,
-                actions.insertBulletsList,
-                actions.insertOrderedList,
-                actions.alignLeft,
-                actions.alignCenter,
-                actions.alignRight,
-              ]}
-              iconMap={{
-                [actions.heading1]: ({tintColor}: any) => (<Text style={[{color: tintColor}]}>H1</Text>),
-              }}
-              style={styles.richBar}
-              iconTint={'#333'}
-              selectedIconTint={'#007AFF'}
-            />
-            
-            <RichEditor
-              ref={richText}
-              style={styles.richEditor}
-              placeholder="말씀을 통해 깨달은 것을 자유롭게 나누어보세요..."
-              initialContentHTML={content}
-              onChange={(descriptionText) => {
-                setContent(descriptionText);
-              }}
-            />
-          </View>
+          
+          {/* 웹/앱 모두 호환되는 기본 텍스트 영역으로 원복 */}
+          <TextInput
+            style={styles.bodyInput}
+            placeholder="말씀을 통해 깨달은 것을 자유롭게 나누어보세요..."
+            placeholderTextColor="#CCC"
+            multiline
+            value={content}
+            onChangeText={setContent}
+            textAlignVertical="top"
+          />
         </ScrollView>
 
         <View style={styles.footer}>
@@ -336,23 +312,6 @@ const styles = StyleSheet.create({
     color: '#111',
     lineHeight: 24,
     minHeight: 200,
-  },
-  editorContainer: {
-    flex: 1,
-    minHeight: 300,
-    borderWidth: 1,
-    borderColor: '#EAEAEA',
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  richBar: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#EAEAEA',
-    backgroundColor: '#FAFAFA',
-  },
-  richEditor: {
-    flex: 1,
-    minHeight: 250,
   },
   footer: {
     padding: 16,
