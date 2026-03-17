@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Image, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Image, Platform, Modal, Share } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useStore, Post } from '../store/useStore';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -16,6 +16,18 @@ export default function FeedScreen() {
   // 수정/삭제 옵션 모달 상태
   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
   const [selectedPostForOptions, setSelectedPostForOptions] = useState<string | null>(null);
+
+  const handleShare = async (postId: string, postTitle: string) => {
+    try {
+      await Share.share({
+        message: `[HolyFeed] ${postTitle}\n\n묵상을 확인해보세요:\nhttps://holyfeed-haeunwooood.vercel.app/post/${postId}`,
+        url: `https://holyfeed-haeunwooood.vercel.app/post/${postId}`,
+        title: `[HolyFeed] ${postTitle}`,
+      });
+    } catch (error: any) {
+      console.error(error.message);
+    }
+  };
 
   const filteredPosts = posts.filter(post => {
     if (activeTab === 'Following') return post.visibility === 'Public'; // Simplified MVP: assume we follow all public for now
@@ -118,6 +130,15 @@ export default function FeedScreen() {
             <Text style={styles.actionBtnText}>
               댓글 {postCommentsCount > 0 && postCommentsCount}
             </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={(e) => {
+              if (Platform.OS === 'web') e.stopPropagation();
+              handleShare(item.id, item.title);
+            }}
+          >
+            <Icon name="share-outline" size={20} color="#333" />
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.actionBtn, { marginLeft: 'auto', marginRight: 0 }]} 

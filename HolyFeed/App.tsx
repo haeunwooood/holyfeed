@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useStore } from './src/store/useStore';
 import { supabase } from './src/lib/supabase';
+import * as Linking from 'expo-linking';
 
 import BibleScreen from './src/screens/BibleScreen';
 import EditorScreen from './src/screens/EditorScreen';
@@ -31,6 +32,17 @@ type RootStackParamList = {
   PostDetail: undefined;
   Editor: undefined;
   Admin: undefined;
+};
+
+const prefix = Linking.createURL('/');
+
+const linking = {
+  prefixes: [prefix, 'https://holyfeed-haeunwooood.vercel.app'],
+  config: {
+    screens: {
+      PostDetail: 'post/:postId',
+    },
+  },
 };
 
 function MainTabs() {
@@ -213,7 +225,7 @@ export default function App() {
           {/* 중앙: 앱 본체 */}
           <View style={styles.appContainer}>
             <View style={{flex: 1}}>
-              <NavigationContainer ref={navigationRef}>
+              <NavigationContainer ref={navigationRef} linking={linking} fallback={<Text>불러오는 중...</Text>}>
                 <AppNavigator initialRoute={initialRoute} />
               </NavigationContainer>
             </View>
@@ -226,7 +238,7 @@ export default function App() {
         /* 모바일/좁은 화면: 앱 본체만 출력 */
         <View style={styles.appContainer}>
           <View style={{flex: 1}}>
-            <NavigationContainer ref={navigationRef}>
+            <NavigationContainer ref={navigationRef} linking={linking} fallback={<Text>불러오는 중...</Text>}>
               <AppNavigator initialRoute={initialRoute} />
             </NavigationContainer>
           </View>
