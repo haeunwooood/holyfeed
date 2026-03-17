@@ -74,7 +74,7 @@ export default function FeedScreen() {
                   <React.Fragment key={idx}>
                     <Text style={styles.superscript}>{v.verse} </Text>
                     {v.text}
-                    {idx < item.verses.length - 1 ? '\n\n' : ''}
+                    {idx < item.verses.length - 1 ? '\n' : ''}
                   </React.Fragment>
                 ))}
               </Text>

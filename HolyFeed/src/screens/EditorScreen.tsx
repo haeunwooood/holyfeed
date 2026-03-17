@@ -130,7 +130,7 @@ export default function EditorScreen() {
               <React.Fragment key={idx}>
                 <Text style={styles.superscript}>{v.verse} </Text>
                 {v.text}
-                {idx < sortedVerses.length - 1 ? '\n\n' : ''}
+                {idx < sortedVerses.length - 1 ? '\n' : ''}
               </React.Fragment>
             ))}
           </Text>

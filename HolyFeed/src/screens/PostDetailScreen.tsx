@@ -111,7 +111,7 @@ export default function PostDetailScreen() {
                 <React.Fragment key={idx}>
                   <Text style={styles.superscript}>{v.verse} </Text>
                   {v.text}
-                  {idx < post.verses.length - 1 ? '\n\n' : ''}
+                  {idx < post.verses.length - 1 ? '\n' : ''}
                 </React.Fragment>
               ))}
             </Text>
