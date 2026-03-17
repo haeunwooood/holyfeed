@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, TextInput, Image, Modal, Share } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, TextInput, Image, Modal } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useStore, Post, Comment } from '../store/useStore';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { signInWithKakao } from '../lib/supabase';
 
 export default function PostDetailScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const postId = route.params?.postId;
 
-  const { posts, comments, toggleLikePost, likedPosts, addComment, deletePost, currentUser, toggleBookmarkPost, bookmarkedPosts, isAuthenticated } = useStore();
+  const { posts, comments, toggleLikePost, likedPosts, addComment, deletePost, currentUser, toggleBookmarkPost, bookmarkedPosts } = useStore();
   
   const post = posts.find((p) => p.id === postId);
   const postComments = comments.filter((c) => c.postId === postId);
@@ -26,16 +25,6 @@ export default function PostDetailScreen() {
   // 수정/삭제 옵션 모달 상태
   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
   
-  const handleShare = async (postId: string, postTitle: string) => {
-    try {
-      await Share.share({
-        message: `[HolyFeed] ${postTitle}\n\n묵상을 확인해보세요:\nhttps://holyfeed-haeunwooood.vercel.app/post/${postId}`,
-      });
-    } catch (error: any) {
-      console.error(error.message);
-    }
-  };
-
   const handleLoadMore = () => {
     if (visibleComments.length < postComments.length) {
       setPage(page + 1);
@@ -138,20 +127,7 @@ export default function PostDetailScreen() {
       )}
 
       <Text style={styles.postTitle}>{post.title}</Text>
-      {isAuthenticated ? (
-        <Text style={styles.postContent}>{post.content}</Text>
-      ) : (
-        <View>
-          <Text style={styles.postContent} numberOfLines={5}>{post.content}</Text>
-          <View style={styles.loginPromptContainer}>
-              <Text style={styles.loginPromptText}>더 많은 내용을 보려면 로그인하세요.</Text>
-              <TouchableOpacity style={styles.loginPromptButton} onPress={signInWithKakao}>
-                <Icon name="chatbubble" size={16} color="#000" style={{ marginRight: 8 }} />
-                <Text style={styles.loginPromptButtonText}>카카오로 계속하기</Text>
-              </TouchableOpacity>
-          </View>
-        </View>
-      )}
+      <Text style={styles.postContent}>{post.content}</Text>
 
       <View style={styles.postActions}>
         <TouchableOpacity style={styles.actionBtn} onPress={() => toggleLikePost(post.id)}>
@@ -166,9 +142,6 @@ export default function PostDetailScreen() {
             댓글 {postComments.length > 0 && postComments.length}
           </Text>
         </View>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => handleShare(post.id, post.title)}>
-            <Icon name="share-outline" size={22} color="#333" />
-        </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.actionBtn, { marginLeft: 'auto', marginRight: 0 }]} 
           onPress={() => toggleBookmarkPost(post.id)}
@@ -508,29 +481,5 @@ const styles = StyleSheet.create({
   optionDivider: {
     height: 1,
     backgroundColor: '#F0F0F0',
-  },
-  loginPromptContainer: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    marginTop: -20, // 텍스트와 자연스럽게 겹치게
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-  },
-  loginPromptText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
-  },
-  loginPromptButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FEE500',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  loginPromptButtonText: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#000',
-  },
+  }
 });
