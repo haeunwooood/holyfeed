@@ -4,27 +4,11 @@ import { createClient } from '@supabase/supabase-js';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
-// =========================================================================
-// [필독] Supabase 연동 설정 가이드
-// =========================================================================
-// 1. Supabase 대시보드(https://app.supabase.com)에서 프로젝트를 생성하세요.
-// 2. Project Settings -> API 메뉴에서 URL과 anon public 키를 복사해서 아래 변수에 넣으세요.
-// 
-// [카카오 로그인 세팅 상세 가이드]
-// 3. Supabase 대시보드 좌측 메뉴: Authentication -> Configuration 내 'Providers' 클릭
-// 4. 스크롤을 내려 'Kakao'를 찾아 클릭하고 'Enable Kakao' 스위치를 켭니다.
-// 5. 나타나는 화면에서 'Callback URL (for OAuth)' 값을 복사해 둡니다.
-// 6. 카카오 디벨로퍼스(https://developers.kakao.com) 접속 -> 내 애플리케이션 추가
-// 7. 카카오 디벨로퍼스 메뉴 '요약 정보'에 있는 'REST API 키'를 복사해서 Supabase 화면의 'REST API Key' 칸에 넣습니다.
-// 8. 카카오 디벨로퍼스 메뉴 '보안' -> 'Client Secret'을 생성하고 복사해서 Supabase 화면의 'Client Secret Key' 칸에 넣고 [Save]를 누릅니다.
-// 9. 카카오 디벨로퍼스 메뉴 '카카오 로그인' 활성화 스위치를 켭니다.
-// 10. 카카오 디벨로퍼스 메뉴 '카카오 로그인' 하단의 'Redirect URI'에 5번에서 복사해둔 Supabase Callback URL을 등록합니다.
-// 11. 카카오 디벨로퍼스 메뉴 '동의항목'에서 닉네임과 프로필 사진을 '필수 동의'로 설정합니다.
-// =========================================================================
 
-const supabaseUrl = 'https://eqbtzxehjpvrztiindgv.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxYnR6eGVoanB2cnp0aWluZGd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNDIxNjQsImV4cCI6MjA4ODcxODE2NH0.YQaT9R87GaR80xCavzTRtWALWjuYZ-rOK80w7J-LCBA';
+const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl;
+const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

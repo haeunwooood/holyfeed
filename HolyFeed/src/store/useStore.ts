@@ -46,7 +46,7 @@ interface AppState {
   toggleBookmarkPost: (postId: string) => Promise<void>;
 
   posts: Post[];
-  addPost: (post: Omit<Post, 'id' | 'createdAt' | 'likes'>) => Promise<void>;
+  addPost: (post: Omit<Post, 'id' | 'createdAt' | 'likes' | 'authorId' | 'authorName'>) => Promise<void>;
   updatePost: (postId: string, updates: Partial<Omit<Post, 'id' | 'createdAt' | 'authorId' | 'authorName' | 'likes'>>) => Promise<void>;
   deletePost: (postId: string) => Promise<void>;
 

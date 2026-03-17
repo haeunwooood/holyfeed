@@ -92,8 +92,6 @@ export default function EditorScreen() {
     } else {
       // 새 게시물 등록
       await addPost({
-        authorId: 'user_123', // This will be overwritten by useStore
-        authorName: '사용자',
         title,
         content,
         verses: initialVerses,
