@@ -1,42 +1,119 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform, Modal } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useStore, VerseRef } from '../store/useStore';
 import Icon from 'react-native-vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function EditorScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const editPostId = route.params?.editPostId;
   const initialVerses: VerseRef[] = route.params?.initialVerses || [];
 
-  const { addPost } = useStore();
+  const { addPost, posts, updatePost } = useStore();
   
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState<'Public' | 'Group' | 'Private'>('Public');
+  const [draftModalVisible, setDraftModalVisible] = useState(false);
+  const [savedDraft, setSavedDraft] = useState<any>(null);
 
-  const handlePublish = async () => {
+  useEffect(() => {
+    if (editPostId) {
+      // 수정 모드일 때 기존 데이터 불러오기
+      const postToEdit = posts.find(p => p.id === editPostId);
+      if (postToEdit) {
+        setTitle(postToEdit.title);
+        setContent(postToEdit.content);
+        setVisibility(postToEdit.visibility);
+      }
+    } else {
+      // 새 글 작성 모드일 때 임시저장 확인
+      checkDraft();
+    }
+  }, [editPostId]);
+
+  const checkDraft = async () => {
+    try {
+      const draft = await AsyncStorage.getItem('postDraft');
+      if (draft) {
+        setSavedDraft(JSON.parse(draft));
+        setDraftModalVisible(true);
+      }
+    } catch (e) {
+      console.error('Failed to load draft', e);
+    }
+  };
+
+  const saveDraft = async () => {
+    if (!title.trim() && !content.trim()) return;
+    try {
+      await AsyncStorage.setItem('postDraft', JSON.stringify({ title, content, visibility, verses: initialVerses }));
+      // 임시저장 완료 피드백을 주고 싶다면 여기에 추가
+      console.log('임시저장 완료');
+    } catch (e) {
+      console.error('Failed to save draft', e);
+    }
+  };
+
+  const loadDraft = () => {
+    if (savedDraft) {
+      setTitle(savedDraft.title || '');
+      setContent(savedDraft.content || '');
+      setVisibility(savedDraft.visibility || 'Public');
+    }
+    setDraftModalVisible(false);
+  };
+
+  const deleteDraft = async () => {
+    try {
+      await AsyncStorage.removeItem('postDraft');
+      setDraftModalVisible(false);
+    } catch (e) {
+      console.error('Failed to delete draft', e);
+    }
+  };
+
+  const handlePublish = async (e: any) => {
+    e.preventDefault(); // 새로고침 방지
     if (!title.trim() || !content.trim()) return;
 
-    await addPost({
-      authorId: 'user_123', // This will be overwritten by useStore
-      authorName: '사용자',
-      title,
-      content,
-      verses: initialVerses,
-      visibility,
-    });
+    if (editPostId) {
+      // 게시물 업데이트
+      // updatePost 함수가 useStore에 있어야 함 (없다면 추가 필요)
+      // 현재 스토어 구조상 addPost만 있다면 update 로직을 추가해야 합니다.
+      if (updatePost) {
+        await updatePost(editPostId, { title, content, visibility });
+      }
+    } else {
+      // 새 게시물 등록
+      await addPost({
+        authorId: 'user_123', // This will be overwritten by useStore
+        authorName: '사용자',
+        title,
+        content,
+        verses: initialVerses,
+        visibility,
+      });
+      // 글 발행 시 임시저장 데이터 삭제
+      await AsyncStorage.removeItem('postDraft');
+    }
 
     navigation.navigate('Main', { screen: 'Feed' });
   };
 
   const renderVerses = () => {
-    if (initialVerses.length === 0) return null;
+    const versesToRender = editPostId 
+      ? posts.find(p => p.id === editPostId)?.verses || [] 
+      : initialVerses;
 
-    // 장/절 텍스트 합치기 (예: 1장 1~2절)
-    const book = initialVerses[0].book;
-    const chapter = initialVerses[0].chapter;
-    const sortedVerses = [...initialVerses].sort((a, b) => a.verse - b.verse);
+    if (versesToRender.length === 0) return null;
+
+    // 장/절 텍스트 합치기
+    const book = versesToRender[0].book;
+    const chapter = versesToRender[0].chapter;
+    const sortedVerses = [...versesToRender].sort((a, b) => a.verse - b.verse);
     const verseRange = sortedVerses.length > 1 
       ? `${sortedVerses[0].verse}~${sortedVerses[sortedVerses.length - 1].verse}`
       : `${sortedVerses[0].verse}`;
@@ -48,9 +125,9 @@ export default function EditorScreen() {
           <Text style={styles.verseCardText}>
             {sortedVerses.map((v, idx) => (
               <React.Fragment key={idx}>
+                <Text style={styles.superscript}>{v.verse} </Text>
                 {v.text}
-                <Text style={styles.superscript}> {v.verse}</Text>
-                {idx < sortedVerses.length - 1 ? ' ' : ''}
+                {idx < sortedVerses.length - 1 ? '\n\n' : ''}
               </React.Fragment>
             ))}
           </Text>
@@ -70,12 +147,19 @@ export default function EditorScreen() {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Icon name="close" size={28} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>새 묵상 쓰기</Text>
-          <TouchableOpacity onPress={handlePublish} disabled={!title.trim() || !content.trim()}>
-            <Text style={[styles.publishBtn, (!title.trim() || !content.trim()) && styles.publishBtnDisabled]}>
-              발행
-            </Text>
-          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{editPostId ? '묵상 수정하기' : '새 묵상 쓰기'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {!editPostId && (
+              <TouchableOpacity onPress={saveDraft} style={styles.draftBtn}>
+                <Text style={styles.draftBtnText}>임시저장</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={handlePublish} disabled={!title.trim() || !content.trim()}>
+              <Text style={[styles.publishBtn, (!title.trim() || !content.trim()) && styles.publishBtnDisabled]}>
+                {editPostId ? '수정' : '발행'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.content}>
@@ -116,6 +200,28 @@ export default function EditorScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* 임시저장 불러오기 모달 (앱 내 표시) */}
+      <Modal visible={draftModalVisible} animationType="fade" transparent={true}>
+        <View style={styles.badgeModalOverlay}>
+          <View style={styles.badgeModalContent}>
+            <Text style={styles.badgeModalTitle}>임시저장된 글이 있습니다</Text>
+            <Text style={styles.badgeModalSub}>이전에 작성 중이던 묵상을 불러오시겠습니까?</Text>
+            <View style={styles.badgeModalButtons}>
+              <TouchableOpacity style={styles.badgeModalBtn} onPress={deleteDraft}>
+                <Text style={styles.badgeModalBtnText}>아니오 (삭제)</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.badgeModalBtn, styles.badgeModalBtnPrimary]} 
+                onPress={loadDraft}
+              >
+                <Text style={[styles.badgeModalBtnText, { color: '#FFF' }]}>불러오기</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -226,5 +332,47 @@ const styles = StyleSheet.create({
   visibilityTextActive: {
     color: '#000',
     fontWeight: 'bold',
-  }
+  },
+  draftBtn: {
+    marginRight: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 14,
+  },
+  draftBtnText: {
+    color: '#555',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  badgeModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  badgeModalContent: {
+    width: '80%',
+    maxWidth: 340,
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 30,
+    alignItems: 'center',
+    elevation: 5,
+    ...(Platform.OS === 'web' ? {
+      boxShadow: '0px 10px 20px rgba(0, 0, 0, 0.2)'
+    } : {
+      shadowColor: '#000',
+      shadowOpacity: 0.2,
+      shadowOffset: { width: 0, height: 10 },
+      shadowRadius: 20,
+    })
+  },
+  badgeModalTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 8, textAlign: 'center' },
+  badgeModalSub: { fontSize: 15, color: '#666', textAlign: 'center', marginBottom: 24 },
+  badgeModalButtons: { flexDirection: 'row', width: '100%' },
+  badgeModalBtn: { flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 12, backgroundColor: '#F5F5F5' },
+  badgeModalBtnPrimary: { backgroundColor: '#000', marginLeft: 10 },
+  badgeModalBtnText: { fontSize: 15, fontWeight: 'bold', color: '#666' }
 });

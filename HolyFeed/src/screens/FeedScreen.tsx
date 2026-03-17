@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Image, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Image, Platform, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useStore, Post } from '../store/useStore';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -12,6 +12,10 @@ export default function FeedScreen() {
   const { posts, comments, toggleLikePost, likedPosts, deletePost, currentUser, toggleBookmarkPost, bookmarkedPosts } = useStore();
   const [activeTab, setActiveTab] = useState<'All' | 'Following'>('All');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  
+  // 수정/삭제 옵션 모달 상태
+  const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [selectedPostForOptions, setSelectedPostForOptions] = useState<string | null>(null);
 
   const filteredPosts = posts.filter(post => {
     if (activeTab === 'Following') return post.visibility === 'Public'; // Simplified MVP: assume we follow all public for now
@@ -48,21 +52,11 @@ export default function FeedScreen() {
             onPress={(e) => {
               if (Platform.OS === 'web') e.stopPropagation();
               if (item.authorId === currentUser?.id) {
-                if (Platform.OS === 'web') {
-                  const confirmDelete = window.confirm('묵상을 삭제하시겠습니까?');
-                  if (confirmDelete) deletePost(item.id);
-                } else {
-                  Alert.alert('묵상 관리', '어떤 작업을 하시겠습니까?', [
-                    { text: '삭제', style: 'destructive', onPress: () => deletePost(item.id) },
-                    { text: '취소', style: 'cancel' }
-                  ]);
-                }
+                setSelectedPostForOptions(item.id);
+                setOptionsModalVisible(true);
               } else {
-                if (Platform.OS === 'web') {
-                  window.alert('게시글 신고 또는 차단 기능은 준비 중입니다.');
-                } else {
-                  Alert.alert('옵션', '게시글 신고 또는 차단 기능은 준비 중입니다.', [{ text: '확인' }]);
-                }
+                // 다른 사람 글일 경우 신고 등 기능 (생략 가능)
+                console.log('신고 기능 준비 중');
               }
             }}
           >
@@ -76,13 +70,13 @@ export default function FeedScreen() {
             <Icon name="book" size={14} color="#666" style={{ marginRight: 6, marginTop: 2 }} />
             <View style={{ flex: 1 }}>
               <Text style={styles.citationText} numberOfLines={3}>
-                "{item.verses.map((v, idx) => (
+                {item.verses.map((v, idx) => (
                   <React.Fragment key={idx}>
+                    <Text style={styles.superscript}>{v.verse} </Text>
                     {v.text}
-                    <Text style={styles.superscript}> {v.verse}</Text>
-                    {idx < item.verses.length - 1 ? ' ' : ''}
+                    {idx < item.verses.length - 1 ? '\n\n' : ''}
                   </React.Fragment>
-                ))}"
+                ))}
               </Text>
               <Text style={styles.citationRef}>
                 - {item.verses[0].book} {item.verses[0].chapter}장 {
@@ -189,6 +183,45 @@ export default function FeedScreen() {
         postId={selectedPostId || ''} 
         onClose={() => setSelectedPostId(null)} 
       />
+      {/* 옵션 모달 */}
+      <Modal visible={optionsModalVisible} animationType="fade" transparent={true}>
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setOptionsModalVisible(false)}
+        >
+          <View style={styles.optionsModalContent}>
+            <TouchableOpacity 
+              style={styles.optionBtn}
+              onPress={() => {
+                setOptionsModalVisible(false);
+                if (selectedPostForOptions) {
+                  navigation.navigate('Editor', { editPostId: selectedPostForOptions });
+                }
+              }}
+            >
+              <Icon name="pencil" size={20} color="#000" style={styles.optionIcon} />
+              <Text style={styles.optionText}>수정하기</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.optionDivider} />
+            
+            <TouchableOpacity 
+              style={styles.optionBtn}
+              onPress={() => {
+                setOptionsModalVisible(false);
+                if (selectedPostForOptions) {
+                  // 삭제 확인 모달을 여기서 띄워도 되지만, 단순화를 위해 바로 삭제 (앱 내 경고창 사용 가능)
+                  deletePost(selectedPostForOptions);
+                }
+              }}
+            >
+              <Icon name="trash" size={20} color="#FF3B30" style={styles.optionIcon} />
+              <Text style={[styles.optionText, { color: '#FF3B30' }]}>삭제하기</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -367,5 +400,47 @@ const styles = StyleSheet.create({
       shadowOpacity: 0.3,
       shadowRadius: 4,
     })
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    zIndex: 999,
+  },
+  optionsModalContent: {
+    width: '90%',
+    maxWidth: 340,
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    paddingVertical: 8,
+    ...(Platform.OS === 'web' ? {
+      boxShadow: '0px 10px 30px rgba(0,0,0,0.2)'
+    } : {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.2,
+      shadowRadius: 20,
+      elevation: 5,
+    })
+  },
+  optionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    paddingHorizontal: 24,
+  },
+  optionIcon: {
+    marginRight: 16,
+  },
+  optionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  optionDivider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
   }
 });

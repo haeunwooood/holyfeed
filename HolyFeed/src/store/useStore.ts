@@ -47,6 +47,7 @@ interface AppState {
 
   posts: Post[];
   addPost: (post: Omit<Post, 'id' | 'createdAt' | 'likes'>) => Promise<void>;
+  updatePost: (postId: string, updates: Partial<Omit<Post, 'id' | 'createdAt' | 'authorId' | 'authorName' | 'likes'>>) => Promise<void>;
   deletePost: (postId: string) => Promise<void>;
 
   comments: Comment[];
@@ -227,6 +228,24 @@ export const useStore = create<AppState>((set, get) => ({
 
     await get().fetchData(); 
     await get().checkBadges(); // 뱃지 체크
+  },
+
+  updatePost: async (postId, updates) => {
+    const { currentUser } = get();
+    if (!currentUser) return;
+
+    // 낙관적 업데이트
+    set((state) => ({
+      posts: state.posts.map((p) => p.id === postId ? { ...p, ...updates } : p)
+    }));
+
+    await supabase.from('posts').update({
+      title: updates.title,
+      content: updates.content,
+      visibility: updates.visibility
+    }).match({ id: postId, author_id: currentUser.id });
+    
+    await get().fetchData();
   },
 
   deletePost: async (postId) => {
