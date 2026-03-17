@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     color: '#444',
     lineHeight: 20,
     marginBottom: 6,
-    fontStyle: 'italic',
+    // fontStyle: 'italic', // 기울임 제외
   },
   superscript: {
     fontSize: 9,

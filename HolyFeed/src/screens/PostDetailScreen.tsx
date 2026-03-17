@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, TextInput, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, TextInput, Image, Modal } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useStore, Post, Comment } from '../store/useStore';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -21,6 +21,9 @@ export default function PostDetailScreen() {
   const visibleComments = postComments.slice(0, page * COMMENTS_PER_PAGE);
 
   const [commentText, setCommentText] = useState('');
+  
+  // 수정/삭제 옵션 모달 상태
+  const [optionsModalVisible, setOptionsModalVisible] = useState(false);
   
   const handleLoadMore = () => {
     if (visibleComments.length < postComments.length) {
@@ -87,33 +90,11 @@ export default function PostDetailScreen() {
         </View>
         <TouchableOpacity 
           style={styles.moreOptionsBtn} 
-          onPress={async () => {
+          onPress={() => {
             if (post.authorId === currentUser?.id) {
-              if (Platform.OS === 'web') {
-                const confirmDelete = window.confirm('묵상을 삭제하시겠습니까?');
-                if (confirmDelete) {
-                  await deletePost(post.id);
-                  navigation.goBack();
-                }
-              } else {
-                Alert.alert('묵상 관리', '어떤 작업을 하시겠습니까?', [
-                  { 
-                    text: '삭제', 
-                    style: 'destructive', 
-                    onPress: async () => {
-                      await deletePost(post.id);
-                      navigation.goBack();
-                    }
-                  },
-                  { text: '취소', style: 'cancel' }
-                ]);
-              }
+              setOptionsModalVisible(true);
             } else {
-              if (Platform.OS === 'web') {
-                window.alert('게시글 신고 또는 차단 기능은 준비 중입니다.');
-              } else {
-                Alert.alert('옵션', '게시글 신고 또는 차단 기능은 준비 중입니다.', [{ text: '확인' }]);
-              }
+              console.log('신고 기능 준비 중');
             }
           }}
         >
@@ -126,13 +107,13 @@ export default function PostDetailScreen() {
           <Icon name="book" size={14} color="#666" style={{ marginRight: 6, marginTop: 2 }} />
           <View style={{ flex: 1 }}>
             <Text style={styles.citationText}>
-              "{post.verses.map((v, idx) => (
+              {post.verses.map((v, idx) => (
                 <React.Fragment key={idx}>
+                  <Text style={styles.superscript}>{v.verse} </Text>
                   {v.text}
-                  <Text style={styles.superscript}> {v.verse}</Text>
-                  {idx < post.verses.length - 1 ? ' ' : ''}
+                  {idx < post.verses.length - 1 ? '\n\n' : ''}
                 </React.Fragment>
-              ))}"
+              ))}
             </Text>
             <Text style={styles.citationRef}>
               - {post.verses[0].book} {post.verses[0].chapter}장 {
@@ -219,6 +200,42 @@ export default function PostDetailScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* 옵션 모달 */}
+      <Modal visible={optionsModalVisible} animationType="fade" transparent={true}>
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setOptionsModalVisible(false)}
+        >
+          <View style={styles.optionsModalContent}>
+            <TouchableOpacity 
+              style={styles.optionBtn}
+              onPress={() => {
+                setOptionsModalVisible(false);
+                navigation.navigate('Editor', { editPostId: post.id });
+              }}
+            >
+              <Icon name="pencil" size={20} color="#000" style={styles.optionIcon} />
+              <Text style={styles.optionText}>수정하기</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.optionDivider} />
+            
+            <TouchableOpacity 
+              style={styles.optionBtn}
+              onPress={async () => {
+                setOptionsModalVisible(false);
+                await deletePost(post.id);
+                navigation.goBack();
+              }}
+            >
+              <Icon name="trash" size={20} color="#FF3B30" style={styles.optionIcon} />
+              <Text style={[styles.optionText, { color: '#FF3B30' }]}>삭제하기</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -293,9 +310,9 @@ const styles = StyleSheet.create({
   },
   citationText: {
     fontSize: 14,
-    fontStyle: 'italic',
+    // fontStyle: 'italic', // 기울임 제외
     color: '#333',
-    lineHeight: 20,
+    lineHeight: 22,
     marginBottom: 6,
   },
   superscript: {
@@ -423,4 +440,46 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingBottom: 40,
+    zIndex: 999,
+  },
+  optionsModalContent: {
+    width: '90%',
+    maxWidth: 400,
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    paddingVertical: 8,
+    ...(Platform.OS === 'web' ? {
+      boxShadow: '0px 10px 30px rgba(0,0,0,0.2)'
+    } : {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.2,
+      shadowRadius: 20,
+      elevation: 5,
+    })
+  },
+  optionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    paddingHorizontal: 20,
+  },
+  optionIcon: {
+    marginRight: 12,
+  },
+  optionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  optionDivider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+  }
 });

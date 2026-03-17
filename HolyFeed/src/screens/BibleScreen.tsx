@@ -40,12 +40,16 @@ export default function BibleScreen() {
   const [initialScrollIndex, setInitialScrollIndex] = useState<number | null>(null); // 복원할 스크롤 위치 (인덱스)
   const [nextChapterModalVisible, setNextChapterModalVisible] = useState(false);
   const [nextBookInfo, setNextBookInfo] = useState<{ book: string, testament: 'old_testament' | 'new_testament' } | null>(null);
+  const [fontSize, setFontSize] = useState(16); // 폰트 크기 상태 추가
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
     const loadSavedData = async () => {
       try {
-        const lastReadSaved = await AsyncStorage.getItem('lastReadBible');
+        const [lastReadSaved, savedFontSize] = await Promise.all([
+          AsyncStorage.getItem('lastReadBible'),
+          AsyncStorage.getItem('bibleFontSize')
+        ]);
 
         if (lastReadSaved) {
           const parsed = JSON.parse(lastReadSaved);
@@ -53,6 +57,10 @@ export default function BibleScreen() {
           if (parsed.book) setSelectedBook(parsed.book);
           if (parsed.chapter) setSelectedChapter(parsed.chapter);
           if (parsed.scrollIndex !== undefined) setInitialScrollIndex(parsed.scrollIndex);
+        }
+
+        if (savedFontSize) {
+          setFontSize(parseInt(savedFontSize, 10));
         }
       } catch (e) {
         console.error('Failed to load saved bible data', e);
@@ -108,6 +116,16 @@ export default function BibleScreen() {
       }
     }
   }, [selectedBook, selectedChapter, isLoaded]);
+
+  const handleFontSizeChange = async (delta: number) => {
+    const newSize = Math.max(12, Math.min(30, fontSize + delta)); // 12~30 범위 제한
+    setFontSize(newSize);
+    try {
+      await AsyncStorage.setItem('bibleFontSize', newSize.toString());
+    } catch (e) {
+      console.error('Failed to save font size', e);
+    }
+  };
 
   const handleBookSelect = async (book: string) => {
     // 현재 보고 있는 책이 새로 선택한 책과 다를 때만 '직전 성경'으로 업데이트
@@ -336,13 +354,15 @@ export default function BibleScreen() {
         >
           <Text style={[
             styles.verseNumber, 
-            (highlightColor && highlightColor !== 'transparent' && !isSelected) && { color: isLightColor ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.7)' }
+            (highlightColor && highlightColor !== 'transparent' && !isSelected) && { color: isLightColor ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.7)' },
+            { fontSize: fontSize - 4 } // 절 번호도 동적으로 크기 조절
           ]}>
             {item.verse}
           </Text>
           <Text style={[
             styles.verseText, 
-            (highlightColor && highlightColor !== 'transparent' && !isSelected) && { color: isLightColor ? '#000' : '#FFF' }
+            (highlightColor && highlightColor !== 'transparent' && !isSelected) && { color: isLightColor ? '#000' : '#FFF' },
+            { fontSize: fontSize, lineHeight: fontSize * 1.6 } // 본문 폰트 크기 및 줄간격 동적 반영
           ]}>
             {item.text}
           </Text>
@@ -445,25 +465,22 @@ export default function BibleScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 상단 네비게이션바: 책 선택기 */}
+      {/* 상단 네비게이션바: 책 선택기 및 글꼴 제어 */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setBookSelectorVisible(true)} style={styles.bookSelectorBtn}>
           <Text style={styles.headerTitle}>{selectedBook} {selectedChapter}장</Text>
           <Icon name="chevron-down" size={20} color="#000" />
         </TouchableOpacity>
-        {/* <View style={styles.progressContainer}>
-          <View style={styles.progressTrack}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { width: `${Math.round((selectedChapter / (currentBookData?.length || 1)) * 100)}%` }
-              ]} 
-            />
-          </View>
-          <Text style={styles.progressText}>
-            {Math.round((selectedChapter / (currentBookData?.length || 1)) * 100)}%
-          </Text>
-        </View> */}
+        
+        <View style={styles.fontControlContainer}>
+          <TouchableOpacity style={styles.fontBtn} onPress={() => handleFontSizeChange(-1)}>
+            <Icon name="remove" size={16} color="#333" />
+          </TouchableOpacity>
+          <Text style={styles.fontText}>{fontSize}</Text>
+          <TouchableOpacity style={styles.fontBtn} onPress={() => handleFontSizeChange(1)}>
+            <Icon name="add" size={16} color="#333" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <FlatList
@@ -582,6 +599,25 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginRight: 4,
+  },
+  fontControlContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  fontBtn: {
+    padding: 4,
+  },
+  fontText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginHorizontal: 12,
+    width: 20,
+    textAlign: 'center',
   },
   progressContainer: {
     flexDirection: 'row',

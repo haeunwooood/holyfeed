@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform, Modal } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useStore, VerseRef } from '../store/useStore';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 
 export default function EditorScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const editPostId = route.params?.editPostId;
   const initialVerses: VerseRef[] = route.params?.initialVerses || [];
+  const richText = useRef<any>(null); // RichEditor 참조
 
   const { addPost, posts, updatePost } = useStore();
   
@@ -18,6 +20,7 @@ export default function EditorScreen() {
   const [visibility, setVisibility] = useState<'Public' | 'Group' | 'Private'>('Public');
   const [draftModalVisible, setDraftModalVisible] = useState(false);
   const [savedDraft, setSavedDraft] = useState<any>(null);
+  const [saveSuccessModalVisible, setSaveSuccessModalVisible] = useState(false); // 임시저장 성공 모달
 
   useEffect(() => {
     if (editPostId) {
@@ -50,8 +53,10 @@ export default function EditorScreen() {
     if (!title.trim() && !content.trim()) return;
     try {
       await AsyncStorage.setItem('postDraft', JSON.stringify({ title, content, visibility, verses: initialVerses }));
-      // 임시저장 완료 피드백을 주고 싶다면 여기에 추가
-      console.log('임시저장 완료');
+      setSaveSuccessModalVisible(true);
+      setTimeout(() => {
+        setSaveSuccessModalVisible(false);
+      }, 1500); // 1.5초 후 자동 닫힘
     } catch (e) {
       console.error('Failed to save draft', e);
     }
@@ -172,16 +177,39 @@ export default function EditorScreen() {
             value={title}
             onChangeText={setTitle}
           />
-          
-          <TextInput
-            style={styles.bodyInput}
-            placeholder="말씀을 통해 깨달은 것을 자유롭게 나누어보세요..."
-            placeholderTextColor="#CCC"
-            multiline
-            value={content}
-            onChangeText={setContent}
-            textAlignVertical="top"
-          />
+
+          <View style={styles.editorContainer}>
+            <RichToolbar
+              editor={richText}
+              actions={[
+                actions.setBold,
+                actions.setItalic,
+                actions.setUnderline,
+                actions.heading1,
+                actions.insertBulletsList,
+                actions.insertOrderedList,
+                actions.alignLeft,
+                actions.alignCenter,
+                actions.alignRight,
+              ]}
+              iconMap={{
+                [actions.heading1]: ({tintColor}: any) => (<Text style={[{color: tintColor}]}>H1</Text>),
+              }}
+              style={styles.richBar}
+              iconTint={'#333'}
+              selectedIconTint={'#007AFF'}
+            />
+            
+            <RichEditor
+              ref={richText}
+              style={styles.richEditor}
+              placeholder="말씀을 통해 깨달은 것을 자유롭게 나누어보세요..."
+              initialContentHTML={content}
+              onChange={(descriptionText) => {
+                setContent(descriptionText);
+              }}
+            />
+          </View>
         </ScrollView>
 
         <View style={styles.footer}>
@@ -218,6 +246,17 @@ export default function EditorScreen() {
                 <Text style={[styles.badgeModalBtnText, { color: '#FFF' }]}>불러오기</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 임시저장 성공 모달 */}
+      <Modal visible={saveSuccessModalVisible} animationType="fade" transparent={true}>
+        <View style={styles.badgeModalOverlay}>
+          <View style={styles.badgeModalContent}>
+            <Icon name="checkmark-circle" size={48} color="#4CAF50" style={{ marginBottom: 12 }} />
+            <Text style={styles.badgeModalTitle}>임시저장 완료</Text>
+            <Text style={styles.badgeModalSub}>작성 중인 내용이 저장되었습니다.</Text>
           </View>
         </View>
       </Modal>
@@ -269,7 +308,7 @@ const styles = StyleSheet.create({
   },
   verseCardText: {
     fontSize: 15,
-    fontStyle: 'italic',
+    // fontStyle: 'italic', // 기울임 제외
     color: '#333',
     lineHeight: 22,
     marginBottom: 8,
@@ -297,6 +336,23 @@ const styles = StyleSheet.create({
     color: '#111',
     lineHeight: 24,
     minHeight: 200,
+  },
+  editorContainer: {
+    flex: 1,
+    minHeight: 300,
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  richBar: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#EAEAEA',
+    backgroundColor: '#FAFAFA',
+  },
+  richEditor: {
+    flex: 1,
+    minHeight: 250,
   },
   footer: {
     padding: 16,
