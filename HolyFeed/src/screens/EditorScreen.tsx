@@ -9,7 +9,7 @@ export default function EditorScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const editPostId = route.params?.editPostId;
-  const initialVerses: VerseRef[] = route.params?.initialVerses || [];
+  const [verses, setVerses] = useState<VerseRef[]>(route.params?.initialVerses || []);
 
   const { addPost, posts, updatePost } = useStore();
   
@@ -28,6 +28,7 @@ export default function EditorScreen() {
         setTitle(postToEdit.title);
         setContent(postToEdit.content);
         setVisibility(postToEdit.visibility);
+        setVerses(postToEdit.verses || []);
       }
     } else {
       // 새 글 작성 모드일 때 임시저장 확인
@@ -50,7 +51,7 @@ export default function EditorScreen() {
   const saveDraft = async () => {
     if (!title.trim() && !content.trim()) return;
     try {
-      await AsyncStorage.setItem('postDraft', JSON.stringify({ title, content, visibility, verses: initialVerses }));
+      await AsyncStorage.setItem('postDraft', JSON.stringify({ title, content, visibility, verses }));
       setSaveSuccessModalVisible(true);
       setTimeout(() => {
         setSaveSuccessModalVisible(false);
@@ -65,6 +66,7 @@ export default function EditorScreen() {
       setTitle(savedDraft.title || '');
       setContent(savedDraft.content || '');
       setVisibility(savedDraft.visibility || 'Public');
+      setVerses(savedDraft.verses || []);
     }
     setDraftModalVisible(false);
   };
@@ -94,7 +96,7 @@ export default function EditorScreen() {
       await addPost({
         title,
         content,
-        verses: initialVerses,
+        verses: verses,
         visibility,
       });
       // 글 발행 시 임시저장 데이터 삭제
@@ -105,16 +107,12 @@ export default function EditorScreen() {
   };
 
   const renderVerses = () => {
-    const versesToRender = editPostId 
-      ? posts.find(p => p.id === editPostId)?.verses || [] 
-      : initialVerses;
-
-    if (versesToRender.length === 0) return null;
+    if (verses.length === 0) return null;
 
     // 장/절 텍스트 합치기
-    const book = versesToRender[0].book;
-    const chapter = versesToRender[0].chapter;
-    const sortedVerses = [...versesToRender].sort((a, b) => a.verse - b.verse);
+    const book = verses[0].book;
+    const chapter = verses[0].chapter;
+    const sortedVerses = [...verses].sort((a, b) => a.verse - b.verse);
     const verseRange = sortedVerses.length > 1 
       ? `${sortedVerses[0].verse}~${sortedVerses[sortedVerses.length - 1].verse}`
       : `${sortedVerses[0].verse}`;
