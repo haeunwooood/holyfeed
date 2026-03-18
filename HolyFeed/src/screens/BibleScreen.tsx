@@ -544,9 +544,14 @@ export default function BibleScreen() {
           
           <View style={styles.floatingActionDivider} />
 
-          <TouchableOpacity style={[styles.actionButton, styles.meditateButton]} onPress={handleMeditate}>
-            <Text style={[styles.actionText, { color: '#fff' }]}>묵상하기 ({selectedVerseIds.length})</Text>
-          </TouchableOpacity>
+          <View style={styles.bottomActionRow}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => setSelectedVerseIds([])}>
+              <Text style={styles.cancelBtnText}>선택해제</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.actionButton, styles.meditateButton]} onPress={handleMeditate}>
+              <Text style={[styles.actionText, { color: '#fff' }]}>묵상하기 ({selectedVerseIds.length})</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -649,7 +654,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 20,
-    paddingBottom: 200, // Increase padding to make space for floating action bar and chapter nav
+    paddingBottom: 280, // Increase padding to make space for floating action bar and chapter nav
   },
   verseContainer: {
     marginBottom: 8,
@@ -779,11 +784,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F0F0',
     marginVertical: 16,
   },
+  bottomActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+  },
+  cancelBtn: {
+    flex: 1, // '묵상하기' 버튼과 반반 비율을 맞추기 위함
+    paddingVertical: 14, // 묵상하기 버튼과 동일한 패딩
+    borderRadius: 16,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  cancelBtnText: {
+    fontSize: 20, // 묵상하기 텍스트 크기와 일치시킴
+    fontWeight: 'bold', // 묵상하기 텍스트와 일치시킴
+    color: '#666',
+  },
   actionButton: {
+    flex: 1, // '선택해제' 버튼과 반반 비율을 맞추기 위함
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    width: '100%',
   },
   meditateButton: {
     backgroundColor: '#000',
