@@ -75,35 +75,56 @@ export default function ProfileSetupScreen({ navigation, route }: any) {
       alert('이름을 입력해주세요.');
       return;
     }
+    if (loading) return; // 중복 실행 방지
 
+    setLoading(true);
     try {
-      setLoading(true);
+      // 1. Supabase Auth의 user_metadata 업데이트
+      // 이렇게 하면 세션이 안전하게 갱신되어 토큰 충돌을 방지할 수 있습니다.
+      const { data: { user: updatedAuthUser }, error: authError } = await supabase.auth.updateUser({
+        data: { 
+          name: name.trim(),
+          avatar_url: avatarUrl,
+        }
+      });
+
+      if (authError) {
+        throw authError;
+      }
+      
+      // 2. 공개 프로필 정보(users 테이블) 업데이트
       const updates = {
         name: name.trim(),
         bio: bio.trim(),
         avatar_url: avatarUrl,
       };
 
-      const { error } = await supabase
+      const { error: dbError } = await supabase
         .from('users')
         .update(updates)
         .eq('id', currentUser?.id);
 
-      if (error) {
-        throw error;
+      if (dbError) {
+        throw dbError;
       }
 
-      // Zustand 상태 업데이트
-      setAuthenticated(true, { ...currentUser, ...updates });
+      // 3. Zustand 스토어의 상태 업데이트
+      const finalUser = {
+        ...currentUser,
+        ...updatedAuthUser,
+        ...updates
+      };
+      setAuthenticated(true, finalUser);
       
+      // 4. 화면 이동
       if (isInitialSetup) {
         navigation.replace('Main');
       } else {
         navigation.goBack();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Profile update error:', error);
-      alert('프로필 업데이트에 실패했습니다.');
+      alert(`프로필 업데이트에 실패했습니다. 에러: ${error.message}`);
     } finally {
       setLoading(false);
     }

@@ -518,32 +518,35 @@ export default function BibleScreen() {
       {/* 다중 선택 액션 메뉴 (하단 플로팅 바) */}
       {selectedVerseIds.length > 0 && (
         <View style={styles.floatingActionBar}>
-          <View style={styles.colorPalette}>
-            {HIGHLIGHT_COLORS.map(color => (
-              <TouchableOpacity 
-                key={color} 
-                style={[
-                  styles.colorCircle, 
-                  { backgroundColor: color === 'transparent' ? '#FFF' : color },
-                ]} 
-                onPress={() => handleHighlight(color)} 
-              >
-                {color === 'transparent' && (
-                  <View style={styles.removeHighlightWrapper}>
-                    <View style={styles.diagonalLine} />
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-          <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
-              <Icon name="heart-outline" size={22} color="#000" />
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionButton, styles.meditateButton]} onPress={handleMeditate}>
-              <Text style={[styles.actionText, { color: '#fff' }]}>묵상하기 ({selectedVerseIds.length})</Text>
+          <View style={styles.floatingActionTopRow}>
+            <View style={styles.colorPalette}>
+              {HIGHLIGHT_COLORS.map(color => (
+                <TouchableOpacity 
+                  key={color} 
+                  style={[
+                    styles.colorCircle, 
+                    { backgroundColor: color === 'transparent' ? '#FFF' : color },
+                  ]} 
+                  onPress={() => handleHighlight(color)} 
+                >
+                  {color === 'transparent' && (
+                    <View style={styles.removeHighlightWrapper}>
+                      <View style={styles.diagonalLine} />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity style={styles.actionLikeBtn} onPress={handleLike}>
+              <Icon name="heart-outline" size={36} color="#000" />
             </TouchableOpacity>
           </View>
+          
+          <View style={styles.floatingActionDivider} />
+
+          <TouchableOpacity style={[styles.actionButton, styles.meditateButton]} onPress={handleMeditate}>
+            <Text style={[styles.actionText, { color: '#fff' }]}>묵상하기 ({selectedVerseIds.length})</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -678,28 +681,22 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     marginTop: 4,
   },
-  actionMenu: {
-    marginTop: 8,
-    padding: 12,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+  // 불필요한 기존 actionMenu 등 삭제
   colorPalette: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
   },
   colorCircle: {
-    width: 16,
-    height: 16,
-    borderRadius: 12,
-    marginRight: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E0E0E0',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+    marginRight: 10,
   },
   removeHighlightWrapper: {
     width: '100%',
@@ -712,26 +709,6 @@ const styles = StyleSheet.create({
     height: 2,
     backgroundColor: '#FF3040',
     transform: [{ rotate: '45deg' }],
-  },
-  actionButtons: {
-    flexDirection: 'row',
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  meditateButton: {
-    backgroundColor: '#000',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 0,
-  },
-  actionText: {
-    marginLeft: 4,
-    fontSize: 14,
-    fontWeight: '600',
   },
   // 장 이동 버튼 (공통)
   navBtn: {
@@ -771,10 +748,8 @@ const styles = StyleSheet.create({
     right: 20,
     backgroundColor: '#FFF',
     borderRadius: 20,
-    padding: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    padding: 16,
+    flexDirection: 'column',
     elevation: 6,
     borderWidth: 1,
     borderColor: '#EAEAEA',
@@ -786,6 +761,38 @@ const styles = StyleSheet.create({
       shadowOffset: { width: 0, height: 4 },
       shadowRadius: 10,
     })
+  },
+  floatingActionTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  actionLikeBtn: {
+    padding: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  floatingActionDivider: {
+    width: '100%',
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginVertical: 16,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  meditateButton: {
+    backgroundColor: '#000',
+    paddingVertical: 14,
+    borderRadius: 16,
+  },
+  actionText: {
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   modalContainer: {
     flex: 1,
