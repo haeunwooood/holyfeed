@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Image, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Image, Platform, Modal, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useStore, Post } from '../store/useStore';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -9,7 +9,7 @@ import Footer from '../components/Footer';
 
 export default function FeedScreen() {
   const navigation = useNavigation<any>();
-  const { posts, comments, toggleLikePost, likedPosts, deletePost, currentUser, toggleBookmarkPost, bookmarkedPosts } = useStore();
+  const { posts, comments, toggleLikePost, likedPosts, deletePost, currentUser, toggleBookmarkPost, bookmarkedPosts, fetchPosts, isLoadingPosts, hasMorePosts } = useStore();
   const [activeTab, setActiveTab] = useState<'All' | 'Following'>('All');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   
@@ -22,6 +22,23 @@ export default function FeedScreen() {
     if (activeTab === 'All') return post.visibility === 'Public';
     return true; 
   });
+
+  const handleLoadMore = () => {
+    if (!isLoadingPosts && hasMorePosts) {
+      fetchPosts(false);
+    }
+  };
+
+  const renderFooter = () => {
+    if (!isLoadingPosts) {
+      return <Footer onPrivacyPress={() => navigation.navigate('PrivacyPolicy')} />;
+    }
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="small" color="#000" />
+      </View>
+    );
+  };
 
   const renderPost = ({ item }: { item: Post }) => {
     const postCommentsCount = comments.filter(c => c.postId === item.id).length;
@@ -159,7 +176,9 @@ export default function FeedScreen() {
         renderItem={renderPost}
         contentContainerStyle={styles.listContent}
         // ListHeaderComponent={<PwaInstallBanner />} // PWA 배너 비활성화
-        ListFooterComponent={<Footer onPrivacyPress={() => navigation.navigate('PrivacyPolicy')} />}
+        ListFooterComponent={renderFooter}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Icon name="document-text-outline" size={48} color="#CCC" />
@@ -364,6 +383,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     marginLeft: 6,
+  },
+  loaderContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyState: {
     alignItems: 'center',

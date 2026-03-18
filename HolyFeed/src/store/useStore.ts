@@ -54,6 +54,9 @@ interface AppState {
   addComment: (comment: Omit<Comment, 'id' | 'createdAt'>) => Promise<void>;
 
   fetchData: () => Promise<void>;
+  fetchPosts: (isInitial?: boolean) => Promise<void>;
+  hasMorePosts: boolean;
+  isLoadingPosts: boolean;
 
   earnedBadges: string[];
   newBadge: string | null;
@@ -80,6 +83,8 @@ export const useStore = create<AppState>((set, get) => ({
   bookmarkedPosts: [],
   posts: [],
   comments: [],
+  hasMorePosts: true,
+  isLoadingPosts: false,
 
   earnedBadges: [],
   newBadge: null,
@@ -98,9 +103,8 @@ export const useStore = create<AppState>((set, get) => ({
     if (!currentUser) return;
 
     try {
-      // Supabase 데이터 페칭
-      const [postsRes, commentsRes, versesRes, postLikesRes, bookmarksRes] = await Promise.all([
-        supabase.from('posts').select('*, users!posts_author_id_fkey(avatar_url)').order('created_at', { ascending: false }),
+      // Supabase 데이터 페칭 (posts 제외)
+      const [commentsRes, versesRes, postLikesRes, bookmarksRes] = await Promise.all([
         supabase.from('comments').select('*, users!comments_author_id_fkey(avatar_url)').order('created_at', { ascending: true }),
         supabase.from('verse_likes').select('verse_id').eq('user_id', currentUser.id),
         supabase.from('post_likes').select('post_id').eq('user_id', currentUser.id),
@@ -108,18 +112,6 @@ export const useStore = create<AppState>((set, get) => ({
       ]);
 
       set({
-        posts: (postsRes.data || []).map((p: any) => ({
-          id: p.id,
-          authorId: p.author_id,
-          authorName: p.author_name || '사용자',
-          authorAvatarUrl: p.users?.avatar_url,
-          title: p.title,
-          content: p.content,
-          verses: p.verses || [],
-          visibility: p.visibility,
-          createdAt: p.created_at,
-          likes: p.likes_count
-        })),
         comments: (commentsRes.data || []).map((c: any) => ({
           id: c.id,
           postId: c.post_id,
@@ -133,8 +125,53 @@ export const useStore = create<AppState>((set, get) => ({
         likedPosts: (postLikesRes.data || []).map((p: any) => p.post_id),
         bookmarkedPosts: (bookmarksRes.data || []).map((b: any) => b.post_id)
       });
+
+      // 게시물 초기 로드 (최대 3개)
+      await get().fetchPosts(true);
     } catch (e) {
       console.error('Data fetch error:', e);
+    }
+  },
+
+  fetchPosts: async (isInitial = false) => {
+    const { posts, isLoadingPosts, hasMorePosts } = get();
+    if (isLoadingPosts || (!isInitial && !hasMorePosts)) return;
+
+    set({ isLoadingPosts: true });
+    const PAGE_SIZE = 3;
+    const from = isInitial ? 0 : posts.length;
+    const to = from + PAGE_SIZE - 1;
+
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*, users!posts_author_id_fkey(avatar_url)')
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (error) throw error;
+
+      const newPosts = (data || []).map((p: any) => ({
+        id: p.id,
+        authorId: p.author_id,
+        authorName: p.author_name || '사용자',
+        authorAvatarUrl: p.users?.avatar_url,
+        title: p.title,
+        content: p.content,
+        verses: p.verses || [],
+        visibility: p.visibility,
+        createdAt: p.created_at,
+        likes: p.likes_count
+      }));
+
+      set({
+        posts: isInitial ? newPosts : [...posts, ...newPosts],
+        hasMorePosts: newPosts.length === PAGE_SIZE,
+        isLoadingPosts: false
+      });
+    } catch (e) {
+      console.error('Fetch posts error:', e);
+      set({ isLoadingPosts: false });
     }
   },
 
