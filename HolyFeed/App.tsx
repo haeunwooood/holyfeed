@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useStore } from './src/store/useStore';
 import { supabase } from './src/lib/supabase';
+import { Analytics } from '@vercel/analytics/react';
 
 import BibleScreen from './src/screens/BibleScreen';
 import EditorScreen from './src/screens/EditorScreen';
@@ -289,6 +290,9 @@ export default function App() {
           </View>
         </View>
       )}
+
+      {/* Vercel Analytics - Web only */}
+      {Platform.OS === 'web' && <Analytics />}
     </View>
   );
 }
