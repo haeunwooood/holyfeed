@@ -155,13 +155,18 @@ export default function App() {
              name: session.user.user_metadata?.name || session.user.user_metadata?.nickname || '새로운 성도',
              avatar_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.profile_image,
              bio: '성경을 사랑하는 제자',
-             role: 'user'
+             role: 'user',
+             last_seen_at: new Date().toISOString()
           };
-          await supabase.from('users').insert([newUser]);
+          const { error: insertError } = await supabase.from('users').insert([newUser]);
+          if (insertError) console.error('User creation error:', insertError);
+          
           currentUser = newUser;
           isNew = true;
           if (isMounted) setInitialRoute('ProfileSetup');
         } else {
+          // 기존 유저라면 접속 시간만 업데이트
+          await supabase.from('users').update({ last_seen_at: new Date().toISOString() }).eq('id', user.id);
           if (isMounted) setInitialRoute('Main');
         }
         
