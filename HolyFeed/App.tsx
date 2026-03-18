@@ -127,56 +127,71 @@ export default function App() {
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
 
   useEffect(() => {
-    // handleSession 함수를 먼저 정의
-    const handleSession = async (session: any) => {
-      if (session?.user) {
-        setIsInitializing(true);
-        // 이미 DB에 등록된 유저인지 확인
-        const { data: user } = await supabase.from('users').select('*').eq('id', session.user.id).single();
-        
-        let isNew = false;
-        let currentUser = user;
+    let isMounted = true;
 
-        if (!user) {
-          // 카카오를 통해 처음 로그인한 유저라면 users 테이블에 프로필 저장
-          const newUser = {
-             id: session.user.id,
-             name: session.user.user_metadata?.name || session.user.user_metadata?.nickname || '새로운 성도',
-             avatar_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.profile_image,
+    const initialize = async () => {
+      // 1. 앱 실행 시 기존 세션 확인 (최초 1회 실행)
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (isMounted) {
+        if (session?.user) {
+          const { data: user } = await supabase.from('users').select('*').eq('id', session.user.id).single();
+          if (user) {
+            setAuthenticated(true, user);
+            await fetchData();
+          } else {
+            setAuthenticated(false, null);
+          }
+        } else {
+          setAuthenticated(false, null);
+        }
+        setIsInitializing(false);
+      }
+    };
+    
+    initialize();
+
+    // 2. 로그인 상태 변경 실시간 감지 (로그인, 로그아웃, 토큰 갱신 등)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!isMounted) return;
+
+      const { isAuthenticated: wasAuthenticated, currentUser: prevUser } = useStore.getState();
+      const user = session?.user;
+
+      if (user) {
+        // 이미 로그인된 상태이고, 사용자 ID가 동일하면 불필요한 데이터 리เฟช 방지 (토큰 갱신 등)
+        if (wasAuthenticated && prevUser?.id === user.id) {
+          return;
+        }
+
+        // DB에서 최신 사용자 정보 가져오기
+        const { data: dbUser } = await supabase.from('users').select('*').eq('id', user.id).single();
+
+        if (dbUser) {
+          setAuthenticated(true, dbUser);
+          await fetchData();
+        } else {
+           // 카카오를 통해 처음 로그인한 유저라면 users 테이블에 프로필 저장
+           const newUser = {
+             id: user.id,
+             name: user.user_metadata?.name || user.user_metadata?.nickname || '새로운 성도',
+             avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.profile_image,
              bio: '성경을 사랑하는 제자',
              role: 'user'
           };
           await supabase.from('users').insert([newUser]);
-          currentUser = newUser;
-          isNew = true;
+          setAuthenticated(true, newUser);
           setInitialRoute('ProfileSetup');
-        } else {
-          setInitialRoute('Main');
+          await fetchData();
         }
-        
-        setAuthenticated(true, currentUser);
-        
-        // 로그인 성공 시 서버의 최신 데이터를 한 번 긁어옴
-        fetchData();
-        setIsInitializing(false);
-      } else {
-        // 세션이 없으면 로그아웃 상태
+      } else if (wasAuthenticated) {
+        // 로그아웃 상태일 때만 상태 변경
         setAuthenticated(false, null);
-        setIsInitializing(false);
       }
-    };
-
-    // 1. 앱 실행 시 기존 세션 확인
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      handleSession(session).finally(() => setIsInitializing(false));
-    });
-
-    // 2. 로그인 상태 변경(로그인 성공, 로그아웃 등) 실시간 감지
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      handleSession(session);
     });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);

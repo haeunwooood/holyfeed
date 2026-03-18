@@ -127,9 +127,7 @@ export default function ProfileScreen() {
           <TouchableOpacity onPress={() => setActiveTab('SavedPosts')} style={[styles.tabBtn, activeTab === 'SavedPosts' && styles.tabBtnActive]}>
             <Text style={[styles.tabText, activeTab === 'SavedPosts' && styles.tabTextActive]}>저장한 묵상</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setActiveTab('SavedVerses')} style={[styles.tabBtn, activeTab === 'SavedVerses' && styles.tabBtnActive]}>
-            <Text style={[styles.tabText, activeTab === 'SavedVerses' && styles.tabTextActive]}>저장한 말씀</Text>
-          </TouchableOpacity>
+
         </ScrollView>
       </View>
 
