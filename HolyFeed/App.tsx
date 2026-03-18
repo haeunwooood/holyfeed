@@ -4,6 +4,7 @@ import { NavigationContainer, useNavigationContainerRef } from '@react-navigatio
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { Analytics } from '@vercel/analytics/react';
 import { useStore } from './src/store/useStore';
 import { supabase } from './src/lib/supabase';
 
@@ -289,6 +290,9 @@ export default function App() {
           </View>
         </View>
       )}
+      
+      {/* Vercel Web Analytics - Only for web platform */}
+      {Platform.OS === 'web' && <Analytics />}
     </View>
   );
 }
