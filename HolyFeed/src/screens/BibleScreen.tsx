@@ -5,9 +5,11 @@ import { useNavigation } from '@react-navigation/native';
 import { useStore, VerseRef } from '../store/useStore';
 import Icon from 'react-native-vector-icons/Ionicons';
 import bibleData from '../data/bible.json';
+import bibleEasyData from '../data/bible_easy.json';
 import Footer from '../components/Footer';
 
 const BIBLE: any = bibleData;
+const BIBLE_EASY: any = bibleEasyData;
 
 const HIGHLIGHT_COLORS = ['transparent', '#EC7480', '#FFB069', '#FFF296', '#9EF0DE', '#85D2FF', '#9884E8'];
 
@@ -16,7 +18,7 @@ const OLD_TESTAMENT_ORDER = [
   '여호수아', '사사기', '룻기', '사무엘상', '사무엘하', '열왕기상', '열왕기하', '역대상', '역대하',
   '에스라', '느헤미야', '에스더',
   '욥기', '시편', '잠언', '전도서', '아가',
-  '이사야', '예레미야', '예레미야 애가', '에스겔', '다니엘',
+  '이사야', '예레미야', '예레미야 애가', '예레미야애가', '에스겔', '다니엘',
   '호세아', '요엘', '아모스', '오바댜', '요나', '미가', '나훔', '하박국', '스바냐', '학개', '스가랴', '말라기'
 ];
 
@@ -24,11 +26,12 @@ const NEW_TESTAMENT_ORDER = [
   '마태복음', '마가복음', '누가복음', '요한복음', '사도행전',
   '로마서', '고린도전서', '고린도후서', '갈라디아서', '에베소서', '빌립보서', '골로새서',
   '데살로니가전서', '데살로니가후서', '디모데전서', '디모데후서', '디도서', '빌레몬서', '히브리서', '야고보서',
-  '베드로전서', '베드로후서', '요한1서', '요한2서', '요한3서', '유다서', '요한계시록'
+  '베드로전서', '베드로후서', '요한1서', '요한일서', '요한2서', '요한이서', '요한3서', '요한삼서', '유다서', '요한계시록'
 ];
 
 export default function BibleScreen() {
   const navigation = useNavigation<any>();
+  const [bibleVersion, setBibleVersion] = useState<'normal' | 'easy'>('normal');
   const [selectedBook, setSelectedBook] = useState('창세기');
   const [selectedChapter, setSelectedChapter] = useState(1);
   const [testament, setTestament] = useState<'old_testament' | 'new_testament'>('old_testament');
@@ -41,15 +44,22 @@ export default function BibleScreen() {
   const [nextChapterModalVisible, setNextChapterModalVisible] = useState(false);
   const [nextBookInfo, setNextBookInfo] = useState<{ book: string, testament: 'old_testament' | 'new_testament' } | null>(null);
   const [fontSize, setFontSize] = useState(16); // 폰트 크기 상태 추가
+  const [chapterSelectorVisible, setChapterSelectorVisible] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
     const loadSavedData = async () => {
       try {
-        const [lastReadSaved, savedFontSize] = await Promise.all([
+        const [lastReadSaved, savedFontSize, savedVersion] = await Promise.all([
           AsyncStorage.getItem('lastReadBible'),
-          AsyncStorage.getItem('bibleFontSize')
+          AsyncStorage.getItem('bibleFontSize'),
+          AsyncStorage.getItem('bibleVersion')
         ]);
+
+        if (savedVersion) {
+          setBibleVersion(savedVersion as 'normal' | 'easy');
+        }
 
         if (lastReadSaved) {
           const parsed = JSON.parse(lastReadSaved);
@@ -99,11 +109,9 @@ export default function BibleScreen() {
     }
   }, [selectedBook, selectedChapter, testament, isLoaded]);
 
-  // 성경이나 장이 변경될 때 선택된 구절 초기화 및 스크롤 위치 복원
+  // 성경이나 장이 변경될 때 스크롤 위치 복원
   useEffect(() => {
     if (isLoaded) {
-      setSelectedVerseIds([]);
-      
       // 처음 로드될 때 저장된 인덱스가 있다면 해당 위치로, 아니면 맨 위로
       if (initialScrollIndex !== null) {
         // FlatList가 렌더링될 시간을 약간 주기 위해 setTimeout 사용
@@ -158,19 +166,53 @@ export default function BibleScreen() {
   // const [highlightedVerses, setHighlightedVerses] = useState<Record<string, string>>({}); // verseId -> color
   // const [bookSelectorVisible, setBookSelectorVisible] = useState(false);
 
+  const handleVersionChange = async (version: 'normal' | 'easy') => {
+    setBibleVersion(version);
+    try {
+      await AsyncStorage.setItem('bibleVersion', version);
+    } catch (e) {
+      console.error('Failed to save version', e);
+    }
+
+    const nextBible = version === 'easy' ? BIBLE_EASY[`${testament}_easy`] : BIBLE[testament];
+    
+    let nextBook = selectedBook;
+    // Handle specific book name differences
+    if (version === 'easy') {
+      if (selectedBook === '예레미야 애가') nextBook = '예레미야애가';
+      if (selectedBook === '요한1서') nextBook = '요한일서';
+      if (selectedBook === '요한2서') nextBook = '요한이서';
+      if (selectedBook === '요한3서') nextBook = '요한삼서';
+    } else {
+      if (selectedBook === '예레미야애가') nextBook = '예레미야 애가';
+      if (selectedBook === '요한일서') nextBook = '요한1서';
+      if (selectedBook === '요한이서') nextBook = '요한2서';
+      if (selectedBook === '요한삼서') nextBook = '요한3서';
+    }
+
+    if (!nextBible || !nextBible[nextBook]) {
+      nextBook = testament === 'old_testament' ? '창세기' : '마태복음';
+      setSelectedChapter(1);
+    }
+    
+    setSelectedBook(nextBook);
+  };
+
   const handleTestamentChange = (newTestament: 'old_testament' | 'new_testament') => {
     setTestament(newTestament);
-    if (newTestament === 'old_testament' && !BIBLE['old_testament'][selectedBook]) {
+    const activeBible = bibleVersion === 'easy' ? BIBLE_EASY[`${newTestament}_easy`] : BIBLE[newTestament];
+    if (newTestament === 'old_testament' && (!activeBible || !activeBible[selectedBook])) {
       setSelectedBook('창세기');
       setSelectedChapter(1);
-    } else if (newTestament === 'new_testament' && !BIBLE['new_testament'][selectedBook]) {
+    } else if (newTestament === 'new_testament' && (!activeBible || !activeBible[selectedBook])) {
       setSelectedBook('마태복음');
       setSelectedChapter(1);
     }
   };
 
   // 책 목록 가져오기 및 순서 정렬
-  const rawBooks = Object.keys(BIBLE[testament]);
+  const activeBible = bibleVersion === 'easy' ? BIBLE_EASY[`${testament}_easy`] : BIBLE[testament];
+  const rawBooks = activeBible ? Object.keys(activeBible) : [];
   const orderArray = testament === 'old_testament' ? OLD_TESTAMENT_ORDER : NEW_TESTAMENT_ORDER;
   
   const books = rawBooks.sort((a, b) => {
@@ -182,9 +224,9 @@ export default function BibleScreen() {
     return idxA - idxB;
   });
 
-  const currentBookData = BIBLE[testament][selectedBook];
+  const currentBookData = activeBible ? activeBible[selectedBook] : [];
   const currentChapterData = currentBookData?.find((c: any) => c.chapter === selectedChapter);
-  const verses = currentChapterData ? Object.entries(currentChapterData.verses).map(([v, text]) => ({ verse: parseInt(v), text: text as string })) : [];
+  const verses = currentChapterData && currentChapterData.verses ? Object.entries(currentChapterData.verses).map(([v, text]) => ({ verse: parseInt(v), text: text as string })) : [];
 
   const handlePrevChapter = () => {
     if (selectedChapter > 1) {
@@ -204,7 +246,8 @@ export default function BibleScreen() {
       }
 
       if (prevBook) {
-        const prevBookData = BIBLE[prevTestament][prevBook];
+        const prevBible = bibleVersion === 'easy' ? BIBLE_EASY[`${prevTestament}_easy`] : BIBLE[prevTestament];
+        const prevBookData = prevBible ? prevBible[prevBook] : [];
         prevBookMaxChapter = prevBookData?.length || 1;
         setTestament(prevTestament);
         setSelectedBook(prevBook);
@@ -421,7 +464,7 @@ export default function BibleScreen() {
           </View>
           <ScrollView>
             {books.map(book => {
-              const bookData = BIBLE[testament][book];
+              // const bookData = activeBible[book];
               // const lastChapter = bookProgress[book] || 0;
               // const totalChapters = bookData?.length || 1;
               // const percent = Math.round((lastChapter / totalChapters) * 100);
@@ -463,24 +506,131 @@ export default function BibleScreen() {
     );
   };
 
+  const renderChapterSelector = () => {
+    const currentBookMaxChapter = currentBookData?.length || 1;
+    const chapters = Array.from({ length: currentBookMaxChapter }, (_, i) => i + 1);
+
+    const content = (
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{selectedBook} 장 선택</Text>
+            <TouchableOpacity onPress={() => setChapterSelectorVisible(false)}>
+              <Icon name="close" size={24} color="#000" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView>
+            <View style={styles.chapterGrid}>
+              {chapters.map(chapter => (
+                <TouchableOpacity 
+                  key={chapter}
+                  style={[styles.chapterGridItem, selectedChapter === chapter && styles.chapterGridItemActive]}
+                  onPress={() => {
+                    setSelectedChapter(chapter);
+                    setChapterSelectorVisible(false);
+                  }}
+                >
+                  <Text style={[styles.chapterGridText, selectedChapter === chapter && styles.chapterGridTextActive]}>{chapter}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    );
+
+    if (Platform.OS === 'web') {
+      return chapterSelectorVisible ? (
+        <View style={[StyleSheet.absoluteFill, { zIndex: 1000 }]}>
+          {content}
+        </View>
+      ) : null;
+    }
+
+    return (
+      <Modal visible={chapterSelectorVisible} animationType="slide" transparent={true}>
+        {content}
+      </Modal>
+    );
+  };
+
+  const renderSettings = () => {
+    const content = (
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>설정</Text>
+            <TouchableOpacity onPress={() => setSettingsVisible(false)}>
+              <Icon name="close" size={24} color="#000" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.settingsSection}>
+            <Text style={styles.settingsSectionTitle}>성경 번역본</Text>
+            <View style={styles.versionSelector}>
+              <TouchableOpacity 
+                style={[styles.versionBtn, bibleVersion === 'normal' && styles.versionBtnActive]} 
+                onPress={() => handleVersionChange('normal')}
+              >
+                <Text style={[styles.versionBtnText, bibleVersion === 'normal' && styles.versionBtnTextActive]}>개역한글</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.versionBtn, bibleVersion === 'easy' && styles.versionBtnActive]} 
+                onPress={() => handleVersionChange('easy')}
+              >
+                <Text style={[styles.versionBtnText, bibleVersion === 'easy' && styles.versionBtnTextActive]}>쉬운성경</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <View style={styles.settingsSection}>
+            <Text style={styles.settingsSectionTitle}>글꼴 크기</Text>
+            <View style={styles.fontControlContainerLarge}>
+              <TouchableOpacity style={styles.fontBtnLarge} onPress={() => handleFontSizeChange(-1)}>
+                <Icon name="remove" size={24} color="#333" />
+              </TouchableOpacity>
+              <Text style={styles.fontTextLarge}>{fontSize}</Text>
+              <TouchableOpacity style={styles.fontBtnLarge} onPress={() => handleFontSizeChange(1)}>
+                <Icon name="add" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+
+    if (Platform.OS === 'web') {
+      return settingsVisible ? (
+        <View style={[StyleSheet.absoluteFill, { zIndex: 1000 }]}>
+          {content}
+        </View>
+      ) : null;
+    }
+
+    return (
+      <Modal visible={settingsVisible} animationType="slide" transparent={true}>
+        {content}
+      </Modal>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* 상단 네비게이션바: 책 선택기 및 글꼴 제어 */}
+      {/* 상단 네비게이션바: 책 선택기, 장 선택기, 설정(글꼴 등) */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => setBookSelectorVisible(true)} style={styles.bookSelectorBtn}>
-          <Text style={styles.headerTitle}>{selectedBook} {selectedChapter}장</Text>
-          <Icon name="chevron-down" size={20} color="#000" />
-        </TouchableOpacity>
-        
-        <View style={styles.fontControlContainer}>
-          <TouchableOpacity style={styles.fontBtn} onPress={() => handleFontSizeChange(-1)}>
-            <Icon name="remove" size={16} color="#333" />
+        <View style={styles.headerLeft}>
+          <TouchableOpacity onPress={() => setBookSelectorVisible(true)} style={styles.headerSelectorBtn}>
+            <Text style={styles.headerTitle}>{selectedBook}</Text>
+            <Icon name="chevron-down" size={20} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.fontText}>{fontSize}</Text>
-          <TouchableOpacity style={styles.fontBtn} onPress={() => handleFontSizeChange(1)}>
-            <Icon name="add" size={16} color="#333" />
+          
+          <TouchableOpacity onPress={() => setChapterSelectorVisible(true)} style={[styles.headerSelectorBtn, { marginLeft: 16 }]}>
+            <Text style={styles.headerTitle}>{selectedChapter}장</Text>
+            <Icon name="chevron-down" size={20} color="#000" />
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity onPress={() => setSettingsVisible(true)} style={styles.settingsBtn}>
+          <Icon name="settings-outline" size={24} color="#000" />
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -558,6 +708,12 @@ export default function BibleScreen() {
       {/* 책 선택 모달 */}
       {renderBookSelector()}
 
+      {/* 장 선택 모달 */}
+      {renderChapterSelector()}
+
+      {/* 설정 모달 */}
+      {renderSettings()}
+
       {/* 다음 권 이동 모달 */}
       <Modal visible={nextChapterModalVisible} animationType="fade" transparent={true}>
         <View style={styles.nextBookModalOverlay}>
@@ -602,6 +758,17 @@ const styles = StyleSheet.create({
   bookSelectorBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerSelectorBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  settingsBtn: {
+    padding: 4,
   },
   headerTitle: {
     fontSize: 18,
@@ -944,5 +1111,102 @@ const styles = StyleSheet.create({
   nextBookModalButtons: { flexDirection: 'row', width: '100%' },
   nextBookModalBtn: { flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 12, backgroundColor: '#F5F5F5' },
   nextBookModalBtnPrimary: { backgroundColor: '#000', marginLeft: 10 },
-  nextBookModalBtnText: { fontSize: 15, fontWeight: 'bold', color: '#666' }
+  nextBookModalBtnText: { fontSize: 15, fontWeight: 'bold', color: '#666' },
+  // 장 선택기 스타일
+  chapterGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingTop: 8,
+  },
+  chapterGridItem: {
+    width: '20%',
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  chapterGridItemActive: {
+    backgroundColor: '#000',
+    borderRadius: 8,
+  },
+  chapterGridText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  chapterGridTextActive: {
+    color: '#FFF',
+    fontWeight: 'bold',
+  },
+  // 설정 모달 스타일
+  settingsSection: {
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  settingsSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 16,
+  },
+  versionSelector: {
+    flexDirection: 'row',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 4,
+  },
+  versionBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  versionBtnActive: {
+    backgroundColor: '#000',
+    elevation: 2,
+    ...(Platform.OS === 'web' ? {
+      boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.05)'
+    } : {
+      shadowColor: '#000',
+      shadowOpacity: 0.1,
+      shadowOffset: { width: 0, height: 2 },
+      shadowRadius: 4,
+    })
+  },
+  versionBtnText: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '600',
+  },
+  versionBtnTextActive: {
+    color: '#FFF',
+    fontWeight: 'bold',
+  },
+  fontControlContainerLarge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 16,
+  },
+  fontBtnLarge: {
+    padding: 12,
+    backgroundColor: '#FFF',
+    borderRadius: 8,
+    elevation: 2,
+    ...(Platform.OS === 'web' ? {
+      boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.05)'
+    } : {
+      shadowColor: '#000',
+      shadowOpacity: 0.05,
+      shadowOffset: { width: 0, height: 2 },
+      shadowRadius: 4,
+    })
+  },
+  fontTextLarge: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginHorizontal: 24,
+    minWidth: 30,
+    textAlign: 'center',
+  }
 });
