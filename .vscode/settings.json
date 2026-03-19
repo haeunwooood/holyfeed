@@ -1,0 +1,16 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^node -e \"const b = require\\('\\./bible_easy\\.json'\\); console\\.log\\(b\\.old_testament_easy\\['창세기'\\] \\? b\\.old_testament_easy\\['창세기'\\]\\[0\\] : 'empty'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node -e \"const fs=require\\('fs'\\); let c = fs\\.readFileSync\\('parse_bible\\.js', 'utf8'\\); c = c\\.replace\\(/old_testament/g, 'old_testament_easy'\\)\\.replace\\(/new_testament/g, 'new_testament_easy'\\)\\.replace\\(/bible\\\\\\.json/g, 'bible_easy\\.json'\\); fs\\.writeFileSync\\('parse_bible_easy\\.js', c\\);\" ; node parse_bible_easy\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^node -e \"const b = require\\('\\./bible_easy\\.json'\\); console\\.log\\(b\\.old_testament_easy\\['창세기'\\]\\[0\\]\\.verses\\['1'\\]\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

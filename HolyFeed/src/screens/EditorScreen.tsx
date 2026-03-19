@@ -110,27 +110,72 @@ export default function EditorScreen() {
     if (verses.length === 0) return null;
 
     // 장/절 텍스트 합치기
-    const book = verses[0].book;
-    const chapter = verses[0].chapter;
-    const sortedVerses = [...verses].sort((a, b) => a.verse - b.verse);
-    const verseRange = sortedVerses.length > 1 
-      ? `${sortedVerses[0].verse}~${sortedVerses[sortedVerses.length - 1].verse}`
-      : `${sortedVerses[0].verse}`;
+    // Sort verses by book, then chapter, then verse
+    const sortedVerses = [...verses].sort((a, b) => {
+      if (a.book !== b.book) return a.book.localeCompare(b.book);
+      if (a.chapter !== b.chapter) return a.chapter - b.chapter;
+      return a.verse - b.verse;
+    });
+
+    // Generate formatted reference string (e.g. "요한복음 1장 1절, 2장 1절")
+    let referenceString = '';
+    const groupedByBookAndChapter: Record<string, Record<number, number[]>> = {};
+    
+    sortedVerses.forEach(v => {
+      if (!groupedByBookAndChapter[v.book]) groupedByBookAndChapter[v.book] = {};
+      if (!groupedByBookAndChapter[v.book][v.chapter]) groupedByBookAndChapter[v.book][v.chapter] = [];
+      groupedByBookAndChapter[v.book][v.chapter].push(v.verse);
+    });
+
+    const bookRefs = Object.entries(groupedByBookAndChapter).map(([book, chapters]) => {
+      const chapterRefs = Object.entries(chapters).map(([chapter, verseList]) => {
+        // Find consecutive verse ranges
+        const ranges: string[] = [];
+        let start = verseList[0];
+        let prev = start;
+        
+        for (let i = 1; i <= verseList.length; i++) {
+          if (i === verseList.length || verseList[i] !== prev + 1) {
+            if (start === prev) {
+              ranges.push(`${start}`);
+            } else {
+              ranges.push(`${start}~${prev}`);
+            }
+            if (i < verseList.length) {
+              start = verseList[i];
+              prev = start;
+            }
+          } else {
+            prev = verseList[i];
+          }
+        }
+        return `${chapter}장 ${ranges.join(', ')}절`;
+      });
+      return `${book} ${chapterRefs.join(', ')}`;
+    });
+
+    referenceString = bookRefs.join('; ');
 
     return (
       <View style={styles.verseCard}>
         <Icon name="book" size={16} color="#888" style={styles.verseIcon} />
         <View style={{ flex: 1 }}>
           <Text style={styles.verseCardText}>
-            {sortedVerses.map((v, idx) => (
-              <React.Fragment key={idx}>
-                <Text style={styles.superscript}>{v.verse} </Text>
-                {v.text}
-                {idx < sortedVerses.length - 1 ? '\n' : ''}
-              </React.Fragment>
-            ))}
+            {sortedVerses.map((v, idx) => {
+              // Show chapter number as superscript if it's the first verse of a new chapter or book
+              const isNewContext = idx === 0 || sortedVerses[idx - 1].book !== v.book || sortedVerses[idx - 1].chapter !== v.chapter;
+              return (
+                <React.Fragment key={idx}>
+                  <Text style={styles.superscript}>
+                    {isNewContext && verses.length > 1 ? `${v.book.substring(0,2)}${v.chapter}:` : ''}{v.verse} 
+                  </Text>
+                  {v.text}
+                  {idx < sortedVerses.length - 1 ? '\n' : ''}
+                </React.Fragment>
+              );
+            })}
           </Text>
-          <Text style={styles.verseCardRef}>{book} {chapter}장 {verseRange}절</Text>
+          <Text style={styles.verseCardRef}>{referenceString}</Text>
         </View>
       </View>
     );
