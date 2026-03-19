@@ -361,20 +361,48 @@ export default function BibleScreen() {
   const handleMeditate = () => {
     if (selectedVerseIds.length === 0) return;
     
-    // 여러 구절이 선택된 경우 오름차순(절 번호 기준)으로 정렬
+    // 여러 구절이 선택된 경우 오름차순(책, 장, 절 기준)으로 정렬
     const sortedVerseIds = [...selectedVerseIds].sort((a, b) => {
-      const vA = parseInt(a.split('_')[2]);
-      const vB = parseInt(b.split('_')[2]);
-      return vA - vB;
+      const [bookA, chapA, vA] = a.split('_');
+      const [bookB, chapB, vB] = b.split('_');
+      if (bookA !== bookB) return bookA.localeCompare(bookB);
+      if (parseInt(chapA) !== parseInt(chapB)) return parseInt(chapA) - parseInt(chapB);
+      return parseInt(vA) - parseInt(vB);
     });
 
+    const activeBible = bibleVersion === 'easy' ? BIBLE_EASY[`${testament}_easy`] : BIBLE[testament];
+
     const initialVerses: VerseRef[] = sortedVerseIds.map(id => {
-      const [, , v] = id.split('_');
+      const [b, c, v] = id.split('_');
+      
+      // 해당 책/장의 텍스트를 찾기 위한 처리
+      // 만약 다른 책(예: 신약/구약 차이 등)에서 골랐다면 현재 testament가 아닐 수 있으나
+      // 일단 BIBLE 전체 구조에서 찾거나 현재 activeBible에서 찾습니다.
+      let targetText = '';
+      if (activeBible && activeBible[b]) {
+        const chapterData = activeBible[b].find((ch: any) => ch.chapter === parseInt(c));
+        if (chapterData && chapterData.verses && chapterData.verses[v]) {
+          targetText = chapterData.verses[v];
+        }
+      }
+      
+      // 만약 현재 testament(신약/구약)에서 못찾았다면, 다른 쪽(신약/구약)도 뒤져봅니다.
+      if (!targetText) {
+        const otherTestament = testament === 'old_testament' ? 'new_testament' : 'old_testament';
+        const otherBible = bibleVersion === 'easy' ? BIBLE_EASY[`${otherTestament}_easy`] : BIBLE[otherTestament];
+        if (otherBible && otherBible[b]) {
+          const chapterData = otherBible[b].find((ch: any) => ch.chapter === parseInt(c));
+          if (chapterData && chapterData.verses && chapterData.verses[v]) {
+            targetText = chapterData.verses[v];
+          }
+        }
+      }
+
       return {
-        book: selectedBook,
-        chapter: selectedChapter,
+        book: b,
+        chapter: parseInt(c),
         verse: parseInt(v),
-        text: currentChapterData.verses[v]
+        text: targetText || currentChapterData.verses[v] // Fallback
       };
     });
 
